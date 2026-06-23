@@ -10,19 +10,30 @@ export default function PaceTrendChart({ data }) {
     );
   }
 
-  const paces = data.map(d => d.pace);
+  // Filter out entries without valid pace data to prevent null access crashes
+  const validData = data.filter(d => d && d.pace != null && d.pace > 0);
+  if (validData.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Running Pace Trend</h3>
+        <p className="text-xs text-gray-400">No running pace data yet</p>
+      </div>
+    );
+  }
+
+  const paces = validData.map(d => d.pace);
   const minPace = Math.min(...paces);
   const maxPace = Math.max(...paces);
   const range = maxPace - minPace || 1;
 
   // SVG dimensions
-  const width = data.length * 30 + 20;
+  const width = validData.length * 30 + 20;
   const height = 120;
   const padding = { top: 10, bottom: 25, left: 5, right: 5 };
   const chartHeight = height - padding.top - padding.bottom;
 
   // Generate path for the line
-  const points = data.map((d, i) => {
+  const points = validData.map((d, i) => {
     const x = padding.left + i * 30 + 15;
     const y = padding.top + ((maxPace - d.pace) / range) * chartHeight;
     return { x, y, ...d };
@@ -34,8 +45,8 @@ export default function PaceTrendChart({ data }) {
   const areaPath = `${linePath} L ${points[points.length - 1].x} ${padding.top + chartHeight} L ${points[0].x} ${padding.top + chartHeight} Z`;
 
   // Determine trend direction
-  const trend = data.length >= 2
-    ? (data[data.length - 1].pace < data[0].pace ? 'improving' : 'declining')
+  const trend = validData.length >= 2
+    ? (validData[validData.length - 1].pace < validData[0].pace ? 'improving' : 'declining')
     : 'neutral';
 
   return (
@@ -100,9 +111,9 @@ export default function PaceTrendChart({ data }) {
 
       {/* Stats */}
       <div className="flex justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-        <span>Best: {data.reduce((a, b) => a.pace < b.pace ? a : b).paceFormatted}</span>
-        <span>Latest: {data[data.length - 1].paceFormatted}</span>
-        <span>{data.length} runs</span>
+        <span>Best: {validData.reduce((a, b) => a.pace < b.pace ? a : b).paceFormatted}</span>
+        <span>Latest: {validData[validData.length - 1].paceFormatted}</span>
+        <span>{validData.length} runs</span>
       </div>
     </div>
   );

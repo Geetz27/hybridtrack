@@ -137,7 +137,7 @@ export function getPaceTrend(workouts, limit = 20) {
   return runs.map(w => {
     const distance = parseFloat(w.distance);
     const duration = parseFloat(w.duration);
-    const paceSeconds = duration / distance; // seconds per km
+    const paceSeconds = (duration * 60) / distance; // seconds per km
     const paceMin = Math.floor(paceSeconds / 60);
     const paceSec = Math.round(paceSeconds % 60);
     return {
@@ -250,8 +250,8 @@ export function getRunningPBs(workouts) {
   let best5K = null;
   if (fiveKRuns.length > 0) {
     const best = fiveKRuns.reduce((best, w) => {
-      const pace = parseFloat(w.duration) / parseFloat(w.distance) * 5;
-      return pace < (best.pace || Infinity) ? { pace, date: w.date, duration: w.duration, distance: w.distance } : best;
+      const pace = (parseFloat(w.duration) * 60) / parseFloat(w.distance) * 5;
+      return best === null || pace < best.pace ? { pace, date: w.date, duration: w.duration, distance: w.distance } : best;
     }, null);
     if (best) {
       const paceSeconds = best.pace / 5; // per km
@@ -264,15 +264,15 @@ export function getRunningPBs(workouts) {
   // Longest run
   const longest = runs.reduce((best, w) => {
     const d = parseFloat(w.distance);
-    return d > (best.distance || 0) ? { distance: d, date: w.date } : best;
+    return best === null || d > best.distance ? { distance: d, date: w.date } : best;
   }, null);
 
   // Best pace (any distance)
   let bestPace = null;
   if (runs.length > 0) {
     const best = runs.reduce((best, w) => {
-      const pace = parseFloat(w.duration) / parseFloat(w.distance);
-      return pace < (best.pace || Infinity) ? { pace, date: w.date, distance: w.distance } : best;
+      const pace = (parseFloat(w.duration) * 60) / parseFloat(w.distance);
+      return best === null || pace < best.pace ? { pace, date: w.date, distance: w.distance } : best;
     }, null);
     if (best) {
       const min = Math.floor(best.pace / 60);

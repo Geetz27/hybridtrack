@@ -382,7 +382,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
               </span>
               <div className={`w-2.5 h-2.5 rounded-full mb-1.5 ${sc.dot}`}/>
               <span className={`text-[8px] font-bold leading-tight text-center ${isToday ? 'text-[#0F172A]' : 'text-[#0F172A]'}`}>
-                {d.sessionName.split(' ')[0]}
+                {(d.sessionName || '').split(' ')[0]}
               </span>
               {isToday && <span className="text-[7px] text-[#14B8A6] font-black mt-0.5">HARI INI</span>}
             </button>
