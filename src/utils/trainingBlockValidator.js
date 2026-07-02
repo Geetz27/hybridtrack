@@ -36,16 +36,9 @@ const ALLOWED_RUN_INTENSITIES = ['Easy', 'Tempo', 'Interval', 'Long', 'Recovery'
 
 const SESSION_REQUIRED_FIELDS = [
   'id',
-  'order',
-  'status',
-  'priority',
-  'isOptional',
   'type',
   'title',
   'description',
-  'coachNotes',
-  'completedAt',
-  'completedWorkoutId',
   'prescription',
 ];
 
@@ -270,13 +263,6 @@ function validatePrescription(prescription, sessionType, prefix, errors, warning
   }
 
   if (sessionType === 'Strength') {
-    // type field
-    if (prescription.type == null) {
-      errors.push(`${prefix}.prescription.type is required for Strength sessions`);
-    } else if (prescription.type !== 'strength') {
-      errors.push(`${prefix}.prescription.type must be 'strength' for Strength sessions, got '${prescription.type}'`);
-    }
-
     // exercises
     if (prescription.exercises == null) {
       errors.push(`${prefix}.prescription.exercises is required for Strength sessions`);
@@ -301,25 +287,18 @@ function validatePrescription(prescription, sessionType, prefix, errors, warning
     warnings.push(...collectUnknownFields(prescription, strengthPrescriptionKnown, `${prefix}.prescription`));
 
   } else if (sessionType === 'Run') {
-    // type field
-    if (prescription.type == null) {
-      errors.push(`${prefix}.prescription.type is required for Run sessions`);
-    } else if (prescription.type !== 'run') {
-      errors.push(`${prefix}.prescription.type must be 'run' for Run sessions, got '${prescription.type}'`);
-    }
-
-    // distance
-    if (prescription.distance == null) {
-      errors.push(`${prefix}.prescription.distance is required for Run sessions`);
-    } else if (!isNumber(prescription.distance)) {
-      errors.push(`${prefix}.prescription.distance must be a number`);
-    }
-
-    // duration
-    if (prescription.duration == null) {
-      errors.push(`${prefix}.prescription.duration is required for Run sessions`);
-    } else if (!isNumber(prescription.duration)) {
-      errors.push(`${prefix}.prescription.duration must be a number`);
+    // At least one of distance or duration must be provided
+    const hasDistance = prescription.distance != null;
+    const hasDuration = prescription.duration != null;
+    if (!hasDistance && !hasDuration) {
+      errors.push(`${prefix}.prescription requires at least one of 'distance' or 'duration'`);
+    } else {
+      if (hasDistance && !isNumber(prescription.distance)) {
+        errors.push(`${prefix}.prescription.distance must be a number`);
+      }
+      if (hasDuration && !isNumber(prescription.duration)) {
+        errors.push(`${prefix}.prescription.duration must be a number`);
+      }
     }
 
     // intensity
@@ -341,13 +320,6 @@ function validatePrescription(prescription, sessionType, prefix, errors, warning
     warnings.push(...collectUnknownFields(prescription, runPrescriptionKnown, `${prefix}.prescription`));
 
   } else if (sessionType === 'Rest') {
-    // type field
-    if (prescription.type == null) {
-      errors.push(`${prefix}.prescription.type is required for Rest sessions`);
-    } else if (prescription.type !== 'rest') {
-      errors.push(`${prefix}.prescription.type must be 'rest' for Rest sessions, got '${prescription.type}'`);
-    }
-
     // Unknown prescription fields for Rest
     const restPrescriptionKnown = ['type'];
     warnings.push(...collectUnknownFields(prescription, restPrescriptionKnown, `${prefix}.prescription`));

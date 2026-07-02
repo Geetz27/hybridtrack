@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import * as dashboardUtils from './utils/dashboard';
-import { getPlannedSession, getNextSession, getNextSessionFromBlock } from './utils/planning';
+import { getPlannedSession, getNextSession, getNextSessionFromBlock, findPendingStrengthSession, findPendingRunSession } from './utils/planning';
 import { generateCoachInsight } from './utils/coachInsight';
+import { generateKnowledgeSnapshot } from './utils/knowledge';
+import { buildCoachReport } from './utils/coachReport';
+import { buildDeepSeekRequest } from './utils/aiAdapter';
 import { runTrainingPipeline } from './utils/trainingPlayground';
 import { validateTrainingBlock } from './utils/trainingBlockValidator';
 import { normalizeTrainingBlock } from './utils/trainingBlockNormalizer';
@@ -9,7 +12,7 @@ import {
   Activity, Dumbbell, Flame, PlusCircle, List, 
   CheckCircle2, Timer, Heart, CalendarDays, TrendingUp,
   BrainCircuit, AlertTriangle, Moon, Target, Award,
-  ChevronRight, X, MessageSquare, Zap, BarChart2, Trash2, LogOut, ChevronDown, Pencil, ClipboardList, Plus, Edit3, Save, FileDown
+  ChevronRight, X, MessageSquare, Zap, BarChart2, Trash2, LogOut, ChevronDown, ChevronUp, Pencil, ClipboardList, Plus, Edit3, Save, FileDown, Clock
 } from 'lucide-react';
 
 // --- 1. IMPORT FIREBASE ---
@@ -33,6 +36,45 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+
+// ─── FIRESTORE SANITIZATION ─────────────────────────────────────────────────
+/**
+ * Recursively remove all undefined values from an object/array tree.
+ * Firestore does not accept undefined field values — this ensures
+ * that any undefined values are stripped before setDoc/updateDoc.
+ *
+ * - Objects: keys with undefined values are removed entirely.
+ * - Arrays:  undefined entries are converted to null.
+ * - Primitives: returned as-is.
+ *
+ * @param {any} value - The value to sanitize.
+ * @returns {any} A sanitized deep copy with no undefined values.
+ */
+function sanitizeForFirestore(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => sanitizeForFirestore(item));
+  }
+
+  if (typeof value === 'object' && !(value instanceof Date)) {
+    const sanitized = {};
+    for (const key of Object.keys(value)) {
+      const sanitizedValue = sanitizeForFirestore(value[key]);
+      // Only include the key if the value is not undefined
+      if (sanitizedValue !== undefined) {
+        sanitized[key] = sanitizedValue;
+      }
+    }
+    return sanitized;
+  }
+
+  // Primitives (string, number, boolean, bigint, symbol) — return as-is
+  // undefined is handled above
+  return value;
+}
 
 // ─── WEEKLY PLAN SCHEMA ─────────────────────────────────────────────────────
 const DEFAULT_WEEKLY_PLAN = {
@@ -196,14 +238,21 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
   };
 
   const handleImport = () => {
+    console.log("Import clicked");
+    console.log(user);
+    console.log(user?.uid);
     try {
       const parsed = JSON.parse(importText.trim());
+      console.log(parsed);
       if (!parsed.days || !parsed.weekStart) throw new Error('Format tidak valid. Pastikan ada field "days" dan "weekStart".');
+      console.log("Writing...");
       setWeeklyPlan(parsed);
       setShowImport(false);
       setImportText('');
       setImportError('');
+      console.log("Import success");
     } catch(e) {
+      console.error(e);
       setImportError(e.message || 'JSON tidak valid.');
     }
   };
@@ -668,8 +717,11 @@ export default function App() {
           return bTime - aTime;
         });
         setActiveTrainingBlock(sorted[0]);
+        console.log('[DEBUG 4C] activeTrainingBlock set:', sorted[0]);
+        console.log('[DEBUG 4C] activeTrainingBlock.trainingBlock?.sessions:', sorted[0]?.trainingBlock?.sessions);
       } else {
         setActiveTrainingBlock(null);
+        console.log('[DEBUG 4C] activeTrainingBlock set to null — no active blocks found');
       }
     }, (error) => {
       console.error("Error fetching training blocks:", error);
@@ -680,33 +732,13 @@ export default function App() {
 
   // --- 4D. DERIVED EFFECTIVE PLAN (Training Block → WeeklyPlan shape) ---
   const effectivePlan = useMemo(() => {
-    if (activeTrainingBlock?.trainingBlock?.sessions) {
-      const block = activeTrainingBlock.trainingBlock;
-      const days = {};
-      const DAY_KEYS_LOCAL = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-      DAY_KEYS_LOCAL.forEach(day => {
-        const session = block.sessions.find(s => s.day === day);
-        if (session) {
-          days[day] = {
-            type: session.type === 'Strength' ? 'Gym' : session.type === 'Run' ? 'Run' : 'Rest',
-            sessionName: session.sessionName || null,
-            notes: session.notes || '',
-            exercises: session.exercises || null,
-            runTarget: session.runTarget || null,
-          };
-        } else {
-          days[day] = { type: 'Rest', sessionName: null, notes: '', exercises: null, runTarget: null };
-        }
-      });
-      return {
-        weekStart: weeklyPlan.weekStart,
-        weekEnd: weeklyPlan.weekEnd,
-        label: block.name || 'Training Block',
-        days,
-      };
-    }
-    return weeklyPlan; // fallback
-  }, [activeTrainingBlock, weeklyPlan]);
+    // Training Blocks are session-order-based (no weekday mapping).
+    // The Dashboard uses getNextSessionFromBlock() directly for next-session logic.
+    // effectivePlan is only used for legacy WeeklyPlan weekday-based features
+    // (Today's Plan Card, getDashboardSummary consistency).
+    // When a Training Block is active, fall through to the legacy WeeklyPlan.
+    return weeklyPlan;
+  }, [weeklyPlan]);
 
   // --- 5. FUNGSI LOGIN / LOGOUT ---
   const loginWithGoogle = async () => {
@@ -725,7 +757,12 @@ export default function App() {
 
   // --- 6. TAMBAH & HAPUS DATA ---
   const handleAddData = async (newData) => {
-    if (!user) return;
+    console.log('[AUDIT 1] handleAddData() ENTERED');
+    console.log('[AUDIT 1] newData:', JSON.stringify(newData));
+    if (!user) {
+      console.log('[AUDIT 1] EARLY RETURN — user is null');
+      return;
+    }
     try {
       const newId = Date.now().toString();
       const docRef = doc(db, 'users', user.uid, 'workouts', newId);
@@ -735,30 +772,56 @@ export default function App() {
       setActiveTab('dashboard');
 
       // ─── Session Completion: mark Training Block session as completed ──
+      // EPIC-011: Adaptive Session Completion — find the earliest pending session
+      // matching the workout type, regardless of sequential order.
+      console.log('[AUDIT 2] activeTrainingBlock:', activeTrainingBlock ? 'EXISTS' : 'NULL');
+      console.log('[AUDIT 2] activeTrainingBlock?.id:', activeTrainingBlock?.id);
+      console.log('[AUDIT 2] activeTrainingBlock?.trainingBlock?.sessions:', activeTrainingBlock?.trainingBlock?.sessions ? 'EXISTS' : 'NULL/MISSING');
       if (activeTrainingBlock?.id && activeTrainingBlock?.trainingBlock?.sessions) {
-        // Find the pending session using current workouts (before adding new one)
-        const pending = getNextSessionFromBlock({
-          trainingBlock: activeTrainingBlock.trainingBlock,
-          completedWorkouts: workouts, // old workouts, new one not yet added
-        });
-        if (pending) {
-          // Map workout type to session type
-          const matchesGym   = newData.type === 'Gym'  && pending.session.type === 'Strength';
-          const matchesRun   = newData.type === 'Lari' && pending.session.type === 'Run';
-          if (matchesGym || matchesRun) {
-            const blockDocRef = doc(db, 'users', user.uid, 'trainingBlocks', activeTrainingBlock.id);
-            await updateDoc(blockDocRef, {
-              [`sessions.${pending.index}.status`]: 'completed',
-              [`sessions.${pending.index}.completedAt`]: serverTimestamp(),
-            });
-          }
+        // Determine which session type to look for based on workout type
+        let pending = null;
+        if (newData.type === 'Gym') {
+          console.log('[AUDIT 3] newData.type is Gym — calling findPendingStrengthSession()');
+          pending = findPendingStrengthSession({
+            trainingBlock: activeTrainingBlock.trainingBlock,
+          });
+        } else if (newData.type === 'Lari') {
+          console.log('[AUDIT 3] newData.type is Lari — calling findPendingRunSession()');
+          pending = findPendingRunSession({
+            trainingBlock: activeTrainingBlock.trainingBlock,
+          });
+        } else {
+          console.log('[AUDIT 3] newData.type is neither Gym nor Lari — no session completion needed');
         }
+        console.log('[AUDIT 4] findPending*Session() returned:', pending ? JSON.stringify({ session: { id: pending.session.id, title: pending.session.title, type: pending.session.type, status: pending.session.status }, index: pending.index }) : 'null');
+        if (pending) {
+          const blockDocRef = doc(db, 'users', user.uid, 'trainingBlocks', activeTrainingBlock.id);
+          console.log('[AUDIT 6] ABOUT TO CALL updateDoc() — blockDocRef path:', `users/${user.uid}/trainingBlocks/${activeTrainingBlock.id}`);
+          // Clone the entire sessions array, modify the target session, then replace the whole array.
+          // NOTE: serverTimestamp() cannot be used inside arrays, so completedAt stays null.
+          const updatedSessions = [...activeTrainingBlock.trainingBlock.sessions];
+          updatedSessions[pending.index] = {
+            ...updatedSessions[pending.index],
+            status: 'completed',
+            completedAt: null,
+          };
+          console.log('[AUDIT 6] replacing trainingBlock.sessions with cloned array, index', pending.index, 'status set to completed');
+          await updateDoc(blockDocRef, {
+            'trainingBlock.sessions': updatedSessions,
+          });
+          console.log('[AUDIT 7] updateDoc() COMPLETED SUCCESSFULLY');
+        } else {
+          console.log('[AUDIT 4] findPending*Session() returned null — no pending session of matching type found');
+        }
+      } else {
+        console.log('[AUDIT 2] CONDITION FAILED — activeTrainingBlock?.id && activeTrainingBlock?.trainingBlock?.sessions is falsy');
       }
 
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
-      console.error("Gagal menyimpan latihan:", err);
+      console.error('[AUDIT 8] CAUGHT EXCEPTION:', err);
+      console.error('[AUDIT 8] Full error:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
     }
   };
 
@@ -863,8 +926,9 @@ export default function App() {
       <main className="max-w-md md:max-w-5xl mx-auto px-4 py-6 md:pt-14 space-y-6">
         {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={effectivePlan} activeTrainingBlock={activeTrainingBlock} />}
         {activeTab === 'add' && <QuickInput onAdd={handleAddData} workouts={workouts} weeklyPlan={weeklyPlan} />}
-        {activeTab === 'history' && <History workouts={workouts} weeklyPlan={weeklyPlan} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
+        {activeTab === 'history' && <History workouts={workouts} weeklyPlan={weeklyPlan} user={user} setShowToast={setShowToast} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
         {activeTab === 'plan' && <WeeklyPlanTab weeklyPlan={weeklyPlan} setWeeklyPlan={setWeeklyPlan} workouts={workouts} user={user} />}
+        {activeTab === 'coach' && <CoachWorkspace workouts={workouts} weeklyPlan={weeklyPlan} activeTrainingBlock={activeTrainingBlock} user={user} />}
       </main>
 
       {/* NAVIGATION */}
@@ -874,6 +938,7 @@ export default function App() {
           <NavButton icon={<ClipboardList />} label="Plan" isActive={activeTab === 'plan'} onClick={() => setActiveTab('plan')} />
           <NavButton icon={<PlusCircle />} label="Input" isActive={activeTab === 'add'} onClick={() => setActiveTab('add')} highlight />
           <NavButton icon={<List />} label="Riwayat" isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+          <NavButton icon={<BrainCircuit />} label="Coach" isActive={activeTab === 'coach'} onClick={() => setActiveTab('coach')} />
         </div>
       </nav>
 
@@ -1327,9 +1392,55 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
         <PersonalRecords gymPRs={gymPRs} runningPBs={runningPBs} />
       </React.Suspense>
 
-      {/* ── Today's Plan Card (existing) ── */}
+      {/* ── Today's Plan Card ── */}
       {(() => {
-        const todayPlan = getPlannedSession(weeklyPlan, new Date());
+        // Determine the "today plan" from either Training Block or WeeklyPlan
+        let todayPlan;
+
+        // Prefer Training Block (session-order-based) when available
+        if (activeTrainingBlock?.trainingBlock?.sessions) {
+          const blockPending = getNextSessionFromBlock({
+            trainingBlock: activeTrainingBlock.trainingBlock,
+            completedWorkouts: workouts,
+          });
+          if (blockPending) {
+            const s = blockPending.session;
+            const isStrength = s.type === 'Strength';
+            const isRun = s.type === 'Run';
+            const rx = s.prescription || {};
+            todayPlan = {
+              type: isStrength ? 'Gym' : isRun ? 'Run' : s.type,
+              sessionName: s.title || (isStrength ? 'Strength Session' : isRun ? 'Run Session' : 'Session'),
+              exercises: isStrength ? (rx.exercises || []).map(ex => {
+                // Support both schemas:
+                //   Legacy: ex.sets = [{weight: 25, reps: 10}, ...]
+                //   AI TB:  ex.sets = 3 (number), ex.reps = "8-12", ex.weight = 25
+                const isAiSchema = typeof ex.sets === 'number';
+                const sets = isAiSchema
+                  ? [{ set: 1, weight: ex.weight, reps: ex.reps }]
+                  : (ex.sets || []).map((set, idx) => ({
+                      set: set.set || set.order || idx + 1,
+                      weight: set.weight,
+                      reps: set.reps,
+                    }));
+                return { name: ex.name || ex.exercise || '', sets };
+              }) : null,
+              runTarget: isRun ? {
+                distance: rx.distance,
+                pace: rx.pace,
+                rpe: rx.rpe,
+                effort: rx.effort || rx.intensity,
+              } : null,
+              notes: s.coachNotes || '',
+            };
+          }
+        }
+
+        // Fallback: WeeklyPlan (weekday-based) for legacy compatibility
+        if (!todayPlan) {
+          todayPlan = getPlannedSession(weeklyPlan, new Date());
+        }
+
         if (!todayPlan || todayPlan.type === 'Rest') return null;
         const sc = getSessionColor(todayPlan.sessionName);
         return (
@@ -1421,12 +1532,679 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
         </div>
       )}
 
+      {/* ── Weekly Training Block ── */}
+      {activeTrainingBlock?.trainingBlock?.sessions && (
+        <WeeklyTrainingBlock
+          sessions={activeTrainingBlock.trainingBlock.sessions}
+          name={activeTrainingBlock.trainingBlock.name}
+          goal={activeTrainingBlock.trainingBlock.goal}
+        />
+      )}
+
       {/* ── Empty State ── */}
       {workouts.length === 0 && (
         <div className="text-center py-10 opacity-50">
           <p className="text-sm">Mulai isi data di tab Input!</p>
         </div>
       )}
+    </div>
+  );
+
+}
+
+// ─── Weekly Training Block Viewer ──────────────────────────────────────────
+function WeeklyTrainingBlock({ sessions, name, goal }) {
+  const [expandedIndex, setExpandedIndex] = useState(null);
+
+  const toggleExpand = (index) => {
+    setExpandedIndex(prev => prev === index ? null : index);
+  };
+
+  // ── Progress computation (non-Rest sessions only) ──
+  const nonRestSessions = sessions.filter(s => s.type !== 'Rest');
+  const completedCount = nonRestSessions.filter(s => s.status === 'completed').length;
+  const totalCount = nonRestSessions.length;
+  const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const statusIcon = (session) => {
+    if (session.type === 'Rest') {
+      return <span className="text-[#94A3B8] text-lg leading-none">☁</span>;
+    }
+    if (session.status === 'completed') {
+      return <CheckCircle2 className="w-5 h-5 text-[#14B8A6] flex-shrink-0" />;
+    }
+    return <span className="w-5 h-5 inline-flex items-center justify-center border-2 border-[#CBD5E1] rounded-full text-[#CBD5E1] text-xs font-bold flex-shrink-0" />;
+  };
+
+  const typeBadge = (session) => {
+    if (session.type === 'Strength') {
+      return <span className="text-[9px] font-bold text-[#8B5CF6] bg-[#F5F3FF] px-2 py-0.5 rounded-full">Strength</span>;
+    }
+    if (session.type === 'Run') {
+      const rx = session.prescription || {};
+      const dist = rx.distance ? ` • ${rx.distance} km` : '';
+      return <span className="text-[9px] font-bold text-[#14B8A6] bg-[#F0FDFA] px-2 py-0.5 rounded-full">Run{dist}</span>;
+    }
+    if (session.type === 'Rest') {
+      return <span className="text-[9px] font-bold text-[#64748B] bg-[#F1F5F9] px-2 py-0.5 rounded-full">Rest</span>;
+    }
+    return null;
+  };
+
+  // ── Format a single exercise line for Strength sessions ──
+  const formatExercise = (ex) => {
+    if (typeof ex.sets === 'number') {
+      // AI schema: { sets: 3, reps: "10-12", weight: 25 }
+      const sets = ex.sets;
+      const reps = ex.reps || '—';
+      const weight = ex.weight;
+      if (weight == null) return `${sets} × ${reps}`;
+      return `${sets} × ${reps} @ ${weight} kg`;
+    }
+    // Legacy schema: { sets: [{ weight: 25, reps: 10 }, ...] }
+    const setArr = ex.sets || [];
+    if (setArr.length === 0) return '—';
+    // Show first set as summary
+    const first = setArr[0];
+    const w = first.weight;
+    const r = first.reps;
+    if (w == null) return `${setArr.length} × ${r || '—'}`;
+    return `${setArr.length} × ${r || '—'} @ ${w} kg`;
+  };
+
+  return (
+    <section className="rounded-[28px] border border-[#DCE3EA] bg-white overflow-hidden shadow-[0_14px_35px_rgba(51,65,85,0.08)]">
+      {/* ── Header: Name + Goal ── */}
+      <div className="px-5 py-4 bg-gradient-to-r from-[#F8FAFC] to-white border-b border-[#DCE3EA]">
+        <div className="flex items-center gap-2 mb-1">
+          <ClipboardList className="w-5 h-5 text-[#14B8A6] flex-shrink-0" />
+          <h2 className="text-base font-black text-[#0F172A]">{name || 'Weekly Training Block'}</h2>
+        </div>
+        {goal && (
+          <p className="text-[11px] text-[#64748B] ml-7">{goal}</p>
+        )}
+      </div>
+
+      {/* ── Weekly Progress ── */}
+      <div className="px-5 py-3 bg-[#FAFBFC] border-b border-[#DCE3EA]">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Weekly Progress</p>
+          <span className="text-[10px] font-bold text-[#0F172A]">{completedCount} / {totalCount} sessions completed</span>
+        </div>
+        {/* Progress bar */}
+        <div className="w-full h-2 bg-[#E2E8F0] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] rounded-full transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <p className="text-[9px] font-bold text-[#14B8A6] mt-1 text-right">{progressPct}%</p>
+      </div>
+
+      {/* ── Session list ── */}
+      <div className="divide-y divide-[#DCE3EA]">
+        {sessions.map((session, index) => {
+          const isExpanded = expandedIndex === index;
+          const isRest = session.type === 'Rest';
+          const isStrength = session.type === 'Strength';
+          const isRun = session.type === 'Run';
+          const rx = session.prescription || {};
+
+          return (
+            <div key={session.id || index}>
+              {/* Session row */}
+              <button
+                onClick={() => toggleExpand(index)}
+                className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[#F8FAFC] transition-colors text-left"
+              >
+                {/* Status icon */}
+                {statusIcon(session)}
+
+                {/* Title + type */}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-bold truncate ${isRest ? 'text-[#64748B]' : 'text-[#0F172A]'}`}>
+                    {session.title || session.type || 'Session'}
+                  </p>
+                  <div className="mt-0.5">
+                    {typeBadge(session)}
+                  </div>
+                </div>
+
+                {/* Expand indicator */}
+                {!isRest && (
+                  <ChevronDown className={`w-4 h-4 text-[#94A3B8] flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                )}
+              </button>
+
+              {/* ── Expanded detail: Strength ── */}
+              {isExpanded && isStrength && (
+                <div className="px-5 pb-4 pt-2 bg-[#FAFBFC] border-t border-[#DCE3EA]/50 space-y-2">
+                  {session.description && (
+                    <p className="text-xs text-[#64748B]">{session.description}</p>
+                  )}
+                  {rx.exercises && rx.exercises.length > 0 && (
+                    <div className="space-y-1.5">
+                      {rx.exercises.map((ex, exIdx) => (
+                        <div key={exIdx} className="flex items-center gap-2 bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
+                          <span className="text-[9px] font-black text-[#8B5CF6] bg-[#F5F3FF] w-5 h-5 flex items-center justify-center rounded flex-shrink-0">
+                            {exIdx + 1}
+                          </span>
+                          <p className="text-xs font-bold text-[#0F172A] flex-1 truncate">
+                            {ex.name || ex.exercise || `Exercise ${exIdx + 1}`}
+                          </p>
+                          <span className="text-[10px] font-bold text-[#7C3AED] bg-[#F5F3FF] border border-[#E9D5FF] px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                            {formatExercise(ex)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {session.coachNotes && (
+                    <p className="text-[10px] text-[#64748B] italic pt-1 border-t border-[#DCE3EA]/50">{session.coachNotes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* ── Expanded detail: Run ── */}
+              {isExpanded && isRun && (
+                <div className="px-5 pb-4 pt-2 bg-[#FAFBFC] border-t border-[#DCE3EA]/50 space-y-2">
+                  {session.description && (
+                    <p className="text-xs text-[#64748B]">{session.description}</p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {rx.distance && (
+                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
+                        <p className="text-[8px] text-[#64748B] uppercase font-bold">Distance</p>
+                        <p className="text-sm font-black text-[#0F172A]">{rx.distance} km</p>
+                      </div>
+                    )}
+                    {rx.duration && (
+                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
+                        <p className="text-[8px] text-[#64748B] uppercase font-bold">Duration</p>
+                        <p className="text-sm font-black text-[#0F172A]">{rx.duration} min</p>
+                      </div>
+                    )}
+                    {rx.intensity && (
+                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
+                        <p className="text-[8px] text-[#64748B] uppercase font-bold">Intensity</p>
+                        <p className="text-sm font-black text-[#14B8A6] capitalize">{rx.intensity}</p>
+                      </div>
+                    )}
+                    {rx.pace && (
+                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
+                        <p className="text-[8px] text-[#64748B] uppercase font-bold">Pace</p>
+                        <p className="text-sm font-black text-[#0F172A]">{rx.pace}/km</p>
+                      </div>
+                    )}
+                    {rx.rpe && (
+                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
+                        <p className="text-[8px] text-[#64748B] uppercase font-bold">RPE</p>
+                        <p className="text-sm font-black text-[#0F172A]">{rx.rpe}</p>
+                      </div>
+                    )}
+                  </div>
+                  {session.coachNotes && (
+                    <p className="text-[10px] text-[#64748B] italic pt-1 border-t border-[#DCE3EA]/50">{session.coachNotes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* ── Expanded detail: Rest ── */}
+              {isExpanded && isRest && (
+                <div className="px-5 pb-4 pt-2 bg-[#FAFBFC] border-t border-[#DCE3EA]/50">
+                  <div className="bg-white border border-[#DCE3EA] rounded-xl px-4 py-3 text-center">
+                    <Moon className="w-6 h-6 text-[#94A3B8] mx-auto mb-1" />
+                    <p className="text-sm font-bold text-[#64748B]">Recovery Day</p>
+                    <p className="text-[11px] text-[#94A3B8]">No prescribed workout.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ─── Coach Workspace ────────────────────────────────────────────────────────
+function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
+  const [activeCoachTab, setActiveCoachTab] = useState('insight');
+  const [showCoachModal, setShowCoachModal] = useState(false);
+
+  // ── Knowledge Snapshot ──
+  const knowledge = useMemo(() => {
+    try {
+      const weightHistory = workouts
+        .filter(w => w.type === 'Recovery' && w.weight)
+        .map(w => ({ date: w.date, weight: w.weight }));
+      return generateKnowledgeSnapshot({
+        workouts,
+        weightHistory,
+        weeklyPlan,
+        currentDate: new Date(),
+      });
+    } catch (err) {
+      console.error('CoachWorkspace: generateKnowledgeSnapshot failed', err);
+      return null;
+    }
+  }, [workouts, weeklyPlan]);
+
+  // ── Coach Report ──
+  const coachReport = useMemo(() => {
+    if (!knowledge) return null;
+    try {
+      return buildCoachReport({
+        knowledge,
+        athlete: { name: user?.displayName || 'Athlete', streak: 0 },
+        currentDate: new Date(),
+      });
+    } catch (err) {
+      console.error('CoachWorkspace: buildCoachReport failed', err);
+      return null;
+    }
+  }, [knowledge, user]);
+
+  // ── AI Request ──
+  const aiRequest = useMemo(() => {
+    if (!knowledge || !coachReport) return null;
+    try {
+      return buildDeepSeekRequest({
+        athleteBrain: {},
+        knowledge,
+        coachReport,
+      });
+    } catch (err) {
+      console.error('CoachWorkspace: buildDeepSeekRequest failed', err);
+      return null;
+    }
+  }, [knowledge, coachReport]);
+
+  // ── Coach Insight ──
+  const coachInsight = useMemo(() => {
+    try {
+      let nextSession = null;
+      if (activeTrainingBlock?.trainingBlock?.sessions) {
+        nextSession = getNextSessionFromBlock({
+          trainingBlock: activeTrainingBlock.trainingBlock,
+          completedWorkouts: workouts,
+        });
+      }
+      return generateCoachInsight({
+        nextSession,
+        weeklyRunDistance: knowledge?.running?.weeklyDistance || 0,
+        weeklyGymSessions: knowledge?.strength?.weeklySessions || 0,
+        currentWeight: knowledge?.body?.currentWeight || null,
+        streak: knowledge?.recovery?.consecutiveDays || 0,
+      });
+    } catch (err) {
+      console.error('CoachWorkspace: generateCoachInsight failed', err);
+      return null;
+    }
+  }, [activeTrainingBlock, workouts, knowledge]);
+
+  // ── Alerts ──
+  const alerts = useMemo(() => analyzeAlerts(workouts), [workouts]);
+
+  // ── Copy AI Prompt to clipboard ──
+  const handleCopyPrompt = async () => {
+    if (!aiRequest) return;
+    const fullPrompt = aiRequest.systemPrompt + '\n\n' + aiRequest.userPrompt;
+    try {
+      await navigator.clipboard.writeText(fullPrompt);
+      setShowCoachModal(true);
+      setTimeout(() => setShowCoachModal(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy prompt:', err);
+    }
+  };
+
+  const tabs = [
+    { key: 'insight', label: 'Insight', icon: BrainCircuit },
+    { key: 'report', label: 'Report', icon: MessageSquare },
+    { key: 'alerts', label: 'Alerts', icon: AlertTriangle },
+    { key: 'pipeline', label: 'Pipeline', icon: Zap },
+  ];
+
+  return (
+    <div className="space-y-4 animate-in fade-in">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-[#0F172A] flex items-center">
+          <BrainCircuit className="w-5 h-5 mr-2 text-[#14B8A6]"/>
+          Coach Workspace
+        </h2>
+        {aiRequest && (
+          <button
+            onClick={handleCopyPrompt}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-[10px] font-bold rounded-xl transition-colors"
+          >
+            <MessageSquare className="w-3.5 h-3.5"/>
+            Copy AI Prompt
+          </button>
+        )}
+      </div>
+
+      {/* ── Toast for copy ── */}
+      {showCoachModal && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white px-5 py-3 rounded-full flex items-center shadow-2xl animate-in slide-in-from-top-5 w-11/12 max-w-sm justify-center">
+          <CheckCircle2 className="w-5 h-5 mr-2 flex-shrink-0" />
+          <span className="font-bold text-sm truncate">AI Prompt copied to clipboard!</span>
+        </div>
+      )}
+
+      {/* ── Tab Navigation ── */}
+      <div className="flex gap-1 p-1 bg-[#F5F7F9] rounded-3xl shadow-inner">
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeCoachTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveCoachTab(tab.key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[10px] font-bold transition-all ${
+                isActive
+                  ? 'bg-white text-[#0F172A] shadow-sm border border-[#DCE3EA]'
+                  : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5"/>
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Tab Content ── */}
+
+      {/* Insight Tab */}
+      {activeCoachTab === 'insight' && (
+        <div className="space-y-4">
+          {/* Coach Insight Card */}
+          {coachInsight && (
+            <div className="rounded-3xl border border-[#CBD5E1]/50 bg-white overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
+                <div className="flex items-center gap-2">
+                  <BrainCircuit className="w-4 h-4 text-[#14B8A6]" />
+                  <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">Coach Insight</p>
+                </div>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                  coachInsight.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                  coachInsight.priority === 'low' ? 'bg-[#F1F5F9] text-[#64748B]' :
+                  'bg-[#ECFDF5] text-[#065F46]'
+                }`}>
+                  {coachInsight.priority === 'high' ? 'Important' : coachInsight.priority === 'low' ? 'Note' : 'Tip'}
+                </span>
+              </div>
+              <div className="px-4 py-3">
+                <p className="text-sm font-bold text-[#0F172A] mb-1">{coachInsight.title}</p>
+                <p className="text-xs text-[#64748B] leading-relaxed">{coachInsight.message}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Knowledge Snapshot Summary */}
+          {knowledge && (
+            <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
+              <div className="px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
+                <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">Knowledge Snapshot</p>
+              </div>
+              <div className="p-4 space-y-3">
+                {/* Running */}
+                <div>
+                  <p className="text-[10px] font-bold text-[#14B8A6] uppercase tracking-wider mb-1.5">Running</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-[#F0FDFA] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Weekly</p>
+                      <p className="text-sm font-black text-[#0F172A]">{knowledge.running?.weeklyDistance?.toFixed(1) || 0} km</p>
+                    </div>
+                    <div className="bg-[#F0FDFA] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Pace</p>
+                      <p className="text-sm font-black text-[#0F172A]">
+                        {knowledge.running?.currentPace ? formatDashboardTime(knowledge.running.currentPace) + '/km' : '—'}
+                      </p>
+                    </div>
+                    <div className="bg-[#F0FDFA] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Trend</p>
+                      <p className="text-sm font-black text-[#0F172A] capitalize">{knowledge.running?.trend || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Strength */}
+                <div>
+                  <p className="text-[10px] font-bold text-[#8B5CF6] uppercase tracking-wider mb-1.5">Strength</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-[#F5F3FF] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Sessions</p>
+                      <p className="text-sm font-black text-[#0F172A]">{knowledge.strength?.weeklySessions || 0}</p>
+                    </div>
+                    <div className="bg-[#F5F3FF] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Trend</p>
+                      <p className="text-sm font-black text-[#0F172A] capitalize">{knowledge.strength?.trend || '—'}</p>
+                    </div>
+                    <div className="bg-[#F5F3FF] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Best</p>
+                      <p className="text-sm font-black text-[#0F172A] truncate">
+                        {knowledge.strength?.strongestExercise
+                          ? `${knowledge.strength.strongestExercise.name} ${knowledge.strength.strongestExercise.weight}kg`
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recovery */}
+                <div>
+                  <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1.5">Recovery</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-[#F1F5F9] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Last</p>
+                      <p className="text-sm font-black text-[#0F172A]">
+                        {knowledge.recovery?.lastWorkoutDays != null ? `${knowledge.recovery.lastWorkoutDays}d ago` : '—'}
+                      </p>
+                    </div>
+                    <div className="bg-[#F1F5F9] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Streak</p>
+                      <p className="text-sm font-black text-[#0F172A]">{knowledge.recovery?.consecutiveDays || 0}d</p>
+                    </div>
+                    <div className="bg-[#F1F5F9] rounded-xl px-3 py-2">
+                      <p className="text-[8px] text-[#64748B] uppercase font-bold">Recovery</p>
+                      <p className="text-sm font-black text-[#0F172A]">
+                        {knowledge.recovery?.needsRecovery ? '⚠️ Needed' : '✅ OK'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Compliance */}
+                {knowledge.compliance && (
+                  <div>
+                    <p className="text-[10px] font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">Plan Compliance</p>
+                    <div className="bg-[#F8FAFC] rounded-xl px-4 py-3 flex items-center justify-between">
+                      <span className="text-xs text-[#64748B]">{knowledge.compliance.completed} / {knowledge.compliance.planned} sessions</span>
+                      <span className="text-sm font-black text-[#14B8A6]">{knowledge.compliance.percentage || 0}%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!knowledge && (
+            <div className="rounded-3xl border border-[#DCE3EA] bg-white p-6 text-center">
+              <BrainCircuit className="w-10 h-10 mx-auto mb-2 text-[#94A3B8]" />
+              <p className="text-sm text-[#64748B]">No workout data available yet.</p>
+              <p className="text-xs text-[#94A3B8] mt-1">Log some workouts to generate insights.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Report Tab */}
+      {activeCoachTab === 'report' && (
+        <div className="space-y-4">
+          {coachReport ? (
+            <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
+              <div className="px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA] flex items-center justify-between">
+                <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">Weekly Coach Report</p>
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(coachReport);
+                      setShowCoachModal(true);
+                      setTimeout(() => setShowCoachModal(false), 2000);
+                    } catch (err) {
+                      console.error('Failed to copy report:', err);
+                    }
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 bg-white border border-[#DCE3EA] rounded-lg text-[10px] font-bold text-[#0F172A] hover:bg-[#F8FAFC] transition-colors"
+                >
+                  <MessageSquare className="w-3 h-3"/>
+                  Copy
+                </button>
+              </div>
+              <div className="p-4">
+                <pre className="text-xs text-[#0F172A] font-mono whitespace-pre-wrap leading-relaxed">{coachReport}</pre>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-[#DCE3EA] bg-white p-6 text-center">
+              <MessageSquare className="w-10 h-10 mx-auto mb-2 text-[#94A3B8]" />
+              <p className="text-sm text-[#64748B]">No report available yet.</p>
+              <p className="text-xs text-[#94A3B8] mt-1">Log more workouts to generate a report.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Alerts Tab */}
+      {activeCoachTab === 'alerts' && (
+        <div className="space-y-3">
+          {alerts.length === 0 ? (
+            <div className="rounded-3xl border border-[#DCE3EA] bg-white p-6 text-center">
+              <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-[#14B8A6]" />
+              <p className="text-sm text-[#64748B]">No alerts. Everything looks good!</p>
+            </div>
+          ) : (
+            alerts.map((alert, idx) => (
+              <div key={idx} className="rounded-3xl border border-[#FDE68A] bg-[#FFFBEB] p-4 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-[#92400E]">Alert #{idx + 1}</p>
+                  <p className="text-sm text-[#78350F] mt-1">{alert}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Pipeline Tab */}
+      {activeCoachTab === 'pipeline' && (
+        <div className="space-y-4">
+          {/* Step 1: Knowledge Snapshot */}
+          <PipelineStep
+            step={1}
+            title="Knowledge Snapshot"
+            description="Extracts running, strength, recovery, and compliance metrics from workout history."
+            status={knowledge ? 'complete' : 'pending'}
+            icon={BrainCircuit}
+          />
+
+          {/* Step 2: Coach Report */}
+          <PipelineStep
+            step={2}
+            title="Coach Report"
+            description="Generates a Markdown report with weekly summary, trends, and recommendations."
+            status={coachReport ? 'complete' : knowledge ? 'ready' : 'pending'}
+            icon={MessageSquare}
+          />
+
+          {/* Step 3: AI Request */}
+          <PipelineStep
+            step={3}
+            title="AI Request Builder"
+            description="Builds the system + user prompt for DeepSeek to generate a new Training Block."
+            status={aiRequest ? 'complete' : coachReport ? 'ready' : 'pending'}
+            icon={Zap}
+          />
+
+          {/* AI Request Preview */}
+          {aiRequest && (
+            <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
+              <div className="px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA] flex items-center justify-between">
+                <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">AI Request Preview</p>
+                <button
+                  onClick={handleCopyPrompt}
+                  className="flex items-center gap-1 px-2 py-1 bg-[#8B5CF6] text-white rounded-lg text-[10px] font-bold hover:bg-[#7C3AED] transition-colors"
+                >
+                  <MessageSquare className="w-3 h-3"/>
+                  Copy
+                </button>
+              </div>
+              <div className="p-4 max-h-80 overflow-y-auto">
+                <div className="mb-3">
+                  <p className="text-[9px] font-bold text-[#64748B] uppercase tracking-wider mb-1">System Prompt</p>
+                  <pre className="text-[10px] text-[#0F172A] font-mono whitespace-pre-wrap bg-[#F8FAFC] border border-[#DCE3EA] rounded-xl p-3 leading-relaxed">
+                    {aiRequest.systemPrompt}
+                  </pre>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold text-[#64748B] uppercase tracking-wider mb-1">User Prompt</p>
+                  <pre className="text-[10px] text-[#0F172A] font-mono whitespace-pre-wrap bg-[#F8FAFC] border border-[#DCE3EA] rounded-xl p-3 leading-relaxed">
+                    {aiRequest.userPrompt}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Run Pipeline Button */}
+          <button
+            onClick={() => {
+              // Force re-computation by toggling a state
+              setActiveCoachTab('insight');
+              setTimeout(() => setActiveCoachTab('pipeline'), 50);
+            }}
+            className="w-full py-3 rounded-xl font-black text-sm bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] text-[#05131c] hover:brightness-110 transition-all flex items-center justify-center gap-2"
+          >
+            <Zap className="w-4 h-4"/>
+            Refresh Pipeline
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Pipeline Step Component ────────────────────────────────────────────────
+function PipelineStep({ step, title, description, status, icon: Icon }) {
+  const statusConfig = {
+    complete: { bg: 'bg-[#ECFDF5] border-[#A7F3D0]', icon: CheckCircle2, iconColor: 'text-[#14B8A6]', label: 'Complete' },
+    ready: { bg: 'bg-[#FFFBEB] border-[#FDE68A]', icon: AlertTriangle, iconColor: 'text-[#F59E0B]', label: 'Ready' },
+    pending: { bg: 'bg-[#F1F5F9] border-[#DCE3EA]', icon: Clock, iconColor: 'text-[#94A3B8]', label: 'Pending' },
+  };
+  const config = statusConfig[status] || statusConfig.pending;
+  const StatusIcon = config.icon;
+
+  return (
+    <div className={`rounded-3xl border ${config.bg} p-4`}>
+      <div className="flex items-start gap-3">
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${status === 'complete' ? 'bg-[#14B8A6]/20' : status === 'ready' ? 'bg-[#F59E0B]/20' : 'bg-[#E2E8F0]'}`}>
+          <Icon className={`w-4 h-4 ${status === 'complete' ? 'text-[#14B8A6]' : status === 'ready' ? 'text-[#F59E0B]' : 'text-[#94A3B8]'}`} />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-[#0F172A]">Step {step}: {title}</p>
+            <span className={`flex items-center gap-1 text-[9px] font-bold ${config.iconColor}`}>
+              <StatusIcon className="w-3 h-3"/>
+              {config.label}
+            </span>
+          </div>
+          <p className="text-[11px] text-[#64748B] mt-1">{description}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1974,7 +2752,6 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
   const [jsonText, setJsonText] = React.useState('');
   const [validationResult, setValidationResult] = React.useState(null); // null | { valid, errors, warnings }
   const [normalizedBlock, setNormalizedBlock] = React.useState(null);
-  const [importStatus, setImportStatus] = React.useState('idle'); // 'idle' | 'ready'
   const [parseError, setParseError] = React.useState('');
   const [importError, setImportError] = React.useState('');
 
@@ -1982,7 +2759,6 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
     setParseError('');
     setValidationResult(null);
     setNormalizedBlock(null);
-    setImportStatus('idle');
     setImportError('');
 
     // 1. Parse JSON
@@ -2006,23 +2782,62 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
   };
 
   const handleImport = async () => {
-    if (!normalizedBlock || !user) return;
+    console.log("STEP 1");
+    console.log({ normalizedBlock });
+    console.log({ user });
+
+    if (!normalizedBlock || !user) {
+      console.log("EARLY RETURN");
+      return;
+    }
+
+    console.log("STEP 2");
+
     setImportError('');
+
     try {
+
+      console.log("STEP 3");
+
       const trainingBlocksRef = collection(db, 'users', user.uid, 'trainingBlocks');
-      const docRef = doc(trainingBlocksRef); // auto ID
+
+      console.log("STEP 4");
+
+      const docRef = doc(trainingBlocksRef);
+
+      console.log("STEP 5");
+
+      // ─── Deep sanitize: strip undefined/null/empty values recursively ──
+      const sanitized = sanitizeForFirestore(normalizedBlock);
+
       await setDoc(docRef, {
-        ...normalizedBlock,
+        ...sanitized,
         importedAt: serverTimestamp(),
-        status: 'active',
+        status: "active",
         importVersion: 1,
-        source: 'AI',
+        source: "AI"
       });
+
+      console.log("STEP 6");
+
       onImportSuccess();
+
+      console.log("STEP 7");
+
       onClose();
+
+      console.log("STEP 8");
+
     } catch (err) {
-      console.error('Failed to import Training Block:', err);
-      setImportError('Failed to import Training Block.');
+
+      console.error("IMPORT FAILED");
+
+      console.error(err);
+
+      console.error(err.code);
+
+      console.error(err.message);
+
     }
   };
 
@@ -2044,7 +2859,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
 
         <textarea
           value={jsonText}
-          onChange={e => { setJsonText(e.target.value); setParseError(''); setValidationResult(null); setNormalizedBlock(null); setImportStatus('idle'); }}
+          onChange={e => { setJsonText(e.target.value); setParseError(''); setValidationResult(null); setNormalizedBlock(null); }}
           rows={10}
           placeholder="Paste the JSON generated by DeepSeek..."
           className="w-full bg-[#fbfcfe] border border-[#CBD5E1] rounded-3xl px-3 py-2.5 text-xs text-[#0F172A] font-mono focus:border-[#14B8A6] outline-none resize-none leading-relaxed"
@@ -2106,12 +2921,6 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
         )}
 
         {/* Import ready */}
-        {importStatus === 'ready' && (
-          <div className="bg-[#ECFDF5] border border-[#A7F3D0] rounded-2xl px-4 py-3 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#14B8A6]"/>
-            <span className="text-xs font-bold text-[#065F46]">Ready for import</span>
-          </div>
-        )}
 
         <div className="flex gap-2">
           <button onClick={onClose}
@@ -2122,7 +2931,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
             className="flex-1 py-2 bg-[#0F172A] text-[#0F172A] font-black text-sm rounded-3xl disabled:opacity-40 disabled:cursor-not-allowed transition-opacity">
             Validate
           </button>
-          <button onClick={handleImport} disabled={!normalizedBlock || importStatus === 'ready'}
+          <button onClick={handleImport} disabled={!normalizedBlock}
             className="flex-1 py-2 bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] text-[#05131c] font-black text-sm rounded-3xl disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all">
             Import
           </button>
@@ -2133,7 +2942,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
 }
 
 
-function History({ workouts, weeklyPlan, onDelete, onEdit }) {
+function History({ workouts, weeklyPlan, user, setShowToast, onDelete, onEdit }) {
   const [expanded, setExpanded] = useState({});
   const [showExport, setShowExport] = React.useState(false);
   const [showImportBlock, setShowImportBlock] = React.useState(false);

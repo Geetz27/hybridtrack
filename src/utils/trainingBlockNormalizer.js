@@ -151,16 +151,18 @@ export function normalizeTrainingBlock(trainingBlockJson) {
       // Sort sessions by order ascending
       block.sessions.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-      block.sessions.forEach(session => {
+      block.sessions.forEach((session, idx) => {
         // Trim string fields
         if (typeof session.title === 'string') session.title = session.title.trim();
         if (typeof session.description === 'string') session.description = session.description.trim();
         if (typeof session.coachNotes === 'string') session.coachNotes = session.coachNotes.trim();
 
         // Apply defaults
+        if (session.order == null) session.order = idx + 1;
         if (session.status == null) session.status = 'pending';
         if (session.priority == null) session.priority = 'medium';
         if (session.isOptional == null) session.isOptional = false;
+        if (session.coachNotes == null) session.coachNotes = '';
         if (session.completedAt == null) session.completedAt = null;
         if (session.completedWorkoutId == null) session.completedWorkoutId = null;
 
@@ -169,11 +171,20 @@ export function normalizeTrainingBlock(trainingBlockJson) {
 
         // Normalize prescription
         if (session.prescription && typeof session.prescription === 'object' && !Array.isArray(session.prescription)) {
-          session.prescription.type = normalizePrescriptionType(session.prescription.type);
+          // Only set prescription.type if it exists and is recognized
+          if (session.prescription.type != null) {
+            session.prescription.type = normalizePrescriptionType(session.prescription.type);
+          } else {
+            // Remove undefined/null type to prevent Firestore errors
+            delete session.prescription.type;
+          }
 
           // Normalize run intensity
           if (session.type === 'Run' && session.prescription.intensity != null) {
             session.prescription.intensity = normalizeRunIntensity(session.prescription.intensity);
+          } else if (session.type === 'Run') {
+            // Remove undefined/null intensity to prevent Firestore errors
+            delete session.prescription.intensity;
           }
         }
       });
