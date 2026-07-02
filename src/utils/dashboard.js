@@ -152,6 +152,8 @@ export function getPaceTrend(workouts, limit = 20) {
 
 // ─── COMPLETION RATE ─────────────────────────────────────────────────────────
 
+import { getPlannedSession } from './planning.js';
+
 export function getCompletionRate(workouts, weeklyPlan) {
   if (!weeklyPlan || !weeklyPlan.days) {
     return { rate: null, completed: 0, planned: 0, message: 'No plan set' };
@@ -173,7 +175,7 @@ export function getCompletionRate(workouts, weeklyPlan) {
     dayDate.setDate(dayDate.getDate() + index);
     return {
       date: dayDate,
-      plan: weeklyPlan.days[dayKey],
+      plan: getPlannedSession(weeklyPlan, dayDate),
     };
   }).filter(item => item.plan && item.plan.type !== 'Rest');
 

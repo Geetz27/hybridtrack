@@ -1,5 +1,10 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import * as dashboardUtils from './utils/dashboard';
+import { getPlannedSession, getNextSession } from './utils/planning';
+import { generateCoachInsight } from './utils/coachInsight';
+import { runTrainingPipeline } from './utils/trainingPlayground';
+import { validateTrainingBlock } from './utils/trainingBlockValidator';
+import { normalizeTrainingBlock } from './utils/trainingBlockNormalizer';
 import { 
   Activity, Dumbbell, Flame, PlusCircle, List, 
   CheckCircle2, Timer, Heart, CalendarDays, TrendingUp,
@@ -597,6 +602,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [weeklyPlan, setWeeklyPlan] = useState(DEFAULT_WEEKLY_PLAN);
+  const [activeTrainingBlock, setActiveTrainingBlock] = useState(null);
 
   // --- 3. AUTHENTICATION LISTENER ---
   useEffect(() => {
@@ -645,6 +651,62 @@ export default function App() {
     });
     return () => unsubscribe();
   }, [user]);
+
+  // --- 4C. FETCH ACTIVE TRAINING BLOCK DARI FIRESTORE ---
+  useEffect(() => {
+    if (!user) return;
+    const trainingBlocksRef = collection(db, 'users', user.uid, 'trainingBlocks');
+    const unsubscribe = onSnapshot(trainingBlocksRef, (snapshot) => {
+      const blocks = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(b => b.status === 'active');
+      if (blocks.length > 0) {
+        // Pick the one with the newest importedAt
+        const sorted = blocks.sort((a, b) => {
+          const aTime = a.importedAt?.toMillis?.() || 0;
+          const bTime = b.importedAt?.toMillis?.() || 0;
+          return bTime - aTime;
+        });
+        setActiveTrainingBlock(sorted[0]);
+      } else {
+        setActiveTrainingBlock(null);
+      }
+    }, (error) => {
+      console.error("Error fetching training blocks:", error);
+      setActiveTrainingBlock(null);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // --- 4D. DERIVED EFFECTIVE PLAN (Training Block → WeeklyPlan shape) ---
+  const effectivePlan = useMemo(() => {
+    if (activeTrainingBlock?.trainingBlock?.sessions) {
+      const block = activeTrainingBlock.trainingBlock;
+      const days = {};
+      const DAY_KEYS_LOCAL = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+      DAY_KEYS_LOCAL.forEach(day => {
+        const session = block.sessions.find(s => s.day === day);
+        if (session) {
+          days[day] = {
+            type: session.type === 'Strength' ? 'Gym' : session.type === 'Run' ? 'Run' : 'Rest',
+            sessionName: session.sessionName || null,
+            notes: session.notes || '',
+            exercises: session.exercises || null,
+            runTarget: session.runTarget || null,
+          };
+        } else {
+          days[day] = { type: 'Rest', sessionName: null, notes: '', exercises: null, runTarget: null };
+        }
+      });
+      return {
+        weekStart: weeklyPlan.weekStart,
+        weekEnd: weeklyPlan.weekEnd,
+        label: block.name || 'Training Block',
+        days,
+      };
+    }
+    return weeklyPlan; // fallback
+  }, [activeTrainingBlock, weeklyPlan]);
 
   // --- 5. FUNGSI LOGIN / LOGOUT ---
   const loginWithGoogle = async () => {
@@ -778,7 +840,7 @@ export default function App() {
 
       {/* MAIN CONTENT */}
       <main className="max-w-md md:max-w-5xl mx-auto px-4 py-6 md:pt-14 space-y-6">
-        {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={weeklyPlan} />}
+        {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={effectivePlan} />}
         {activeTab === 'add' && <QuickInput onAdd={handleAddData} workouts={workouts} weeklyPlan={weeklyPlan} />}
         {activeTab === 'history' && <History workouts={workouts} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
         {activeTab === 'plan' && <WeeklyPlanTab weeklyPlan={weeklyPlan} setWeeklyPlan={setWeeklyPlan} workouts={workouts} user={user} />}
@@ -872,10 +934,13 @@ function getDashboardSummary(workouts, weeklyPlan) {
   if (planEnd) planEnd.setHours(23, 59, 59, 999);
   const planCoversCurrentWeek = planStart && planEnd && planStart <= start && planEnd >= end;
   const plannedDays = planCoversCurrentWeek && weeklyPlan?.days
-    ? DAY_KEYS.map((dayKey, index) => ({
-        date: new Date(start.getFullYear(), start.getMonth(), start.getDate() + index),
-        plan: weeklyPlan.days[dayKey],
-      })).filter(item => item.plan && item.plan.type !== 'Rest')
+    ? DAY_KEYS.map((dayKey, index) => {
+        const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index);
+        return {
+          date,
+          plan: getPlannedSession(weeklyPlan, date),
+        };
+      }).filter(item => item.plan && item.plan.type !== 'Rest')
     : [];
   const completedPlanned = plannedDays.filter(item => {
     const dateKey = [
@@ -1152,6 +1217,21 @@ function Dashboard({ workouts, weeklyPlan }) {
     return getRunningPBs(workouts);
   }, [workouts]);
 
+  // ─── Planning Engine + Coach Insight ────────────────────────────────────
+  const nextSession = useMemo(() => {
+    return getNextSession({ weeklyPlan, completedWorkouts: workouts, currentDate: new Date() });
+  }, [weeklyPlan, workouts]);
+
+  const coachInsight = useMemo(() => {
+    return generateCoachInsight({
+      nextSession,
+      weeklyRunDistance: summary.runDistance,
+      weeklyGymSessions: summary.gymSessions,
+      currentWeight: null,
+      streak: streak.current,
+    });
+  }, [nextSession, summary.runDistance, summary.gymSessions, streak.current]);
+
   // ─── Dynamic Imports for Dashboard Components ───────────────────────────
   const StreakDisplay = React.lazy(() => import('./components/dashboard/StreakDisplay'));
   const VolumeTrendChart = React.lazy(() => import('./components/dashboard/VolumeTrendChart'));
@@ -1220,8 +1300,7 @@ function Dashboard({ workouts, weeklyPlan }) {
 
       {/* ── Today's Plan Card (existing) ── */}
       {(() => {
-        const todayKey = DAY_KEYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
-        const todayPlan = weeklyPlan && weeklyPlan.days && weeklyPlan.days[todayKey];
+        const todayPlan = getPlannedSession(weeklyPlan, new Date());
         if (!todayPlan || todayPlan.type === 'Rest') return null;
         const sc = getSessionColor(todayPlan.sessionName);
         return (
@@ -1290,6 +1369,29 @@ function Dashboard({ workouts, weeklyPlan }) {
         );
       })()}
 
+      {/* ── Coach Insight ── */}
+      {coachInsight && (
+        <div className="rounded-3xl border border-[#CBD5E1]/50 bg-white overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
+            <div className="flex items-center gap-2">
+              <BrainCircuit className="w-4 h-4 text-[#14B8A6]" />
+              <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">Coach Insight</p>
+            </div>
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+              coachInsight.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+              coachInsight.priority === 'low' ? 'bg-[#F1F5F9] text-[#64748B]' :
+              'bg-[#ECFDF5] text-[#065F46]'
+            }`}>
+              {coachInsight.priority === 'high' ? 'Important' : coachInsight.priority === 'low' ? 'Note' : 'Tip'}
+            </span>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-sm font-bold text-[#0F172A] mb-1">{coachInsight.title}</p>
+            <p className="text-xs text-[#64748B] leading-relaxed">{coachInsight.message}</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Empty State ── */}
       {workouts.length === 0 && (
         <div className="text-center py-10 opacity-50">
@@ -1319,11 +1421,8 @@ function QuickInput({ onAdd, workouts, weeklyPlan }) {
   const newExercise = () => ({ exercise: '', sets: [{ weight: '', reps: '' }, { weight: '', reps: '' }, { weight: '', reps: '' }] });
   const [fromPlan, setFromPlan] = React.useState(false);
 
-  const getDayKey = (d) => ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][new Date(d+'T00:00:00').getDay()];
-
   const applyPlanForDate = React.useCallback((dateStr) => {
-    if (!weeklyPlan || !weeklyPlan.days) { setFromPlan(false); return; }
-    const plan = weeklyPlan.days[getDayKey(dateStr)];
+    const plan = getPlannedSession(weeklyPlan, new Date(dateStr + 'T00:00:00'));
     if (!plan) { setFromPlan(false); return; }
     if (plan.type === 'Gym' && plan.exercises && plan.exercises.length > 0) {
       setType('Gym');
@@ -1660,11 +1759,42 @@ function QuickInput({ onAdd, workouts, weeklyPlan }) {
 }
 
 // --- TAB 3: HISTORY ---
-function ExportModal({ workouts, onClose }) {
+function ExportModal({ workouts, weeklyPlan, onClose }) {
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
   const [from, setFrom] = React.useState(weekAgo);
   const [to, setTo]     = React.useState(today);
+  const [aiStatus, setAiStatus] = React.useState('idle'); // 'idle' | 'generating' | 'copied' | 'error'
+
+  const handleGenerateAIReview = async () => {
+    setAiStatus('generating');
+    try {
+      // Build weightHistory from Recovery workouts
+      const weightHistory = workouts
+        .filter(w => w.type === 'Recovery' && w.weight)
+        .map(w => ({ date: w.date, weight: w.weight }));
+
+      // Build athleteBrain from available data (goals, limitations, preferences, experience, notes)
+      const athleteBrain = {};
+
+      const result = runTrainingPipeline({
+        athleteBrain,
+        workouts,
+        weightHistory,
+        weeklyPlan,
+        currentDate: new Date(),
+      });
+
+      const fullPrompt = result.aiRequest.systemPrompt + '\n\n' + result.aiRequest.userPrompt;
+      await navigator.clipboard.writeText(fullPrompt);
+      setAiStatus('copied');
+      setTimeout(() => setAiStatus('idle'), 3000);
+    } catch (err) {
+      console.error('AI Review generation failed:', err);
+      setAiStatus('error');
+      setTimeout(() => setAiStatus('idle'), 3000);
+    }
+  };
 
   const filtered = workouts.filter(w => w.date >= from && w.date <= to)
     .sort((a,b) => a.date.localeCompare(b.date));
@@ -1799,6 +1929,175 @@ ${gyms.length===0?'<p class="empty">Tidak ada sesi gym pada periode ini.</p>':`
           <FileDown className="w-4 h-4"/>
           Export PDF — {filtered.length} sesi
         </button>
+
+        <button onClick={handleGenerateAIReview} disabled={aiStatus === 'generating'}
+          className="w-full py-3 rounded-xl font-black text-sm bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all flex items-center justify-center gap-2">
+          <BrainCircuit className="w-4 h-4"/>
+          {aiStatus === 'generating' ? 'Generating...' : aiStatus === 'copied' ? '✅ Copied!' : aiStatus === 'error' ? '❌ Failed' : '🤖 Generate AI Review'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
+  const [jsonText, setJsonText] = React.useState('');
+  const [validationResult, setValidationResult] = React.useState(null); // null | { valid, errors, warnings }
+  const [normalizedBlock, setNormalizedBlock] = React.useState(null);
+  const [importStatus, setImportStatus] = React.useState('idle'); // 'idle' | 'ready'
+  const [parseError, setParseError] = React.useState('');
+  const [importError, setImportError] = React.useState('');
+
+  const handleValidate = () => {
+    setParseError('');
+    setValidationResult(null);
+    setNormalizedBlock(null);
+    setImportStatus('idle');
+    setImportError('');
+
+    // 1. Parse JSON
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonText.trim());
+    } catch (e) {
+      setParseError('Invalid JSON format.');
+      return;
+    }
+
+    // 2. Validate
+    const result = validateTrainingBlock(parsed);
+    setValidationResult(result);
+
+    if (result.valid) {
+      // 3. Normalize
+      const normalized = normalizeTrainingBlock(parsed);
+      setNormalizedBlock(normalized);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!normalizedBlock || !user) return;
+    setImportError('');
+    try {
+      const trainingBlocksRef = collection(db, 'users', user.uid, 'trainingBlocks');
+      const docRef = doc(trainingBlocksRef); // auto ID
+      await setDoc(docRef, {
+        ...normalizedBlock,
+        importedAt: serverTimestamp(),
+        status: 'active',
+        importVersion: 1,
+        source: 'AI',
+      });
+      onImportSuccess();
+      onClose();
+    } catch (err) {
+      console.error('Failed to import Training Block:', err);
+      setImportError('Failed to import Training Block.');
+    }
+  };
+
+  const block = normalizedBlock?.trainingBlock;
+  const sessionCount = block?.sessions?.length || 0;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+      <div className="bg-[#0d2137] border border-[#CBD5E1] rounded-3xl w-full max-w-md p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-black text-[#0F172A] flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-[#14B8A6]"/>
+            Import Training Block
+          </h2>
+          <button onClick={onClose} className="text-[#64748B] hover:text-[#0F172A] p-1 transition-colors">
+            <X className="w-5 h-5"/>
+          </button>
+        </div>
+
+        <textarea
+          value={jsonText}
+          onChange={e => { setJsonText(e.target.value); setParseError(''); setValidationResult(null); setNormalizedBlock(null); setImportStatus('idle'); }}
+          rows={10}
+          placeholder="Paste the JSON generated by DeepSeek..."
+          className="w-full bg-[#fbfcfe] border border-[#CBD5E1] rounded-3xl px-3 py-2.5 text-xs text-[#0F172A] font-mono focus:border-[#14B8A6] outline-none resize-none leading-relaxed"
+        />
+
+        {/* Parse error */}
+        {parseError && (
+          <p className="text-xs text-[#d92d20] flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0"/> {parseError}
+          </p>
+        )}
+
+        {/* Validation errors */}
+        {validationResult && !validationResult.valid && (
+          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-2xl px-3 py-2 space-y-1">
+            <p className="text-[10px] font-bold text-[#991B1B] uppercase tracking-wider">Validation Errors</p>
+            {validationResult.errors.map((err, i) => (
+              <p key={i} className="text-[11px] text-[#991B1B] flex items-start gap-1.5">
+                <span className="text-[#991B1B] mt-0.5">•</span> {err}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Validation warnings */}
+        {validationResult && validationResult.warnings.length > 0 && (
+          <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl px-3 py-2 space-y-1">
+            <p className="text-[10px] font-bold text-[#92400E] uppercase tracking-wider">Warnings</p>
+            {validationResult.warnings.map((warn, i) => (
+              <p key={i} className="text-[11px] text-[#92400E] flex items-start gap-1.5">
+                <span className="text-[#92400E] mt-0.5">•</span> {warn}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Valid preview */}
+        {validationResult && validationResult.valid && normalizedBlock && (
+          <div className="bg-[#ECFDF5] border border-[#A7F3D0] rounded-2xl px-4 py-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#14B8A6]"/>
+              <span className="text-xs font-bold text-[#065F46]">Training Block Valid</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div>
+                <span className="text-[#64748B]">Name:</span>{' '}
+                <span className="font-bold text-[#0F172A]">{block?.name || '—'}</span>
+              </div>
+              <div>
+                <span className="text-[#64748B]">Goal:</span>{' '}
+                <span className="font-bold text-[#0F172A]">{block?.goal || '—'}</span>
+              </div>
+              <div>
+                <span className="text-[#64748B]">Sessions:</span>{' '}
+                <span className="font-bold text-[#0F172A]">{sessionCount}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Import ready */}
+        {importStatus === 'ready' && (
+          <div className="bg-[#ECFDF5] border border-[#A7F3D0] rounded-2xl px-4 py-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#14B8A6]"/>
+            <span className="text-xs font-bold text-[#065F46]">Ready for import</span>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-2 border border-[#CBD5E1] rounded-3xl text-[#0F172A] text-sm font-bold hover:text-[#0F172A] hover:bg-[#FFFFFF] transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleValidate} disabled={!jsonText.trim()}
+            className="flex-1 py-2 bg-[#0F172A] text-[#0F172A] font-black text-sm rounded-3xl disabled:opacity-40 disabled:cursor-not-allowed transition-opacity">
+            Validate
+          </button>
+          <button onClick={handleImport} disabled={!normalizedBlock || importStatus === 'ready'}
+            className="flex-1 py-2 bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] text-[#05131c] font-black text-sm rounded-3xl disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all">
+            Import
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1808,6 +2107,7 @@ ${gyms.length===0?'<p class="empty">Tidak ada sesi gym pada periode ini.</p>':`
 function History({ workouts, onDelete, onEdit }) {
   const [expanded, setExpanded] = useState({});
   const [showExport, setShowExport] = React.useState(false);
+  const [showImportBlock, setShowImportBlock] = React.useState(false);
   const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
   const sorted = [...workouts].sort((a,b) => {
@@ -1861,13 +2161,21 @@ function History({ workouts, onDelete, onEdit }) {
         <h2 className="text-lg font-bold text-[#0F172A] flex items-center">
           <List className="w-5 h-5 mr-2 text-[#14B8A6]"/> Riwayat Sesi
         </h2>
-        <button onClick={() => setShowExport(true)}
-          className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl bg-[#FFFFFF] text-[#0F172A] hover:bg-[#99F6E4]/20 hover:text-[#14B8A6] transition-all border border-[#CBD5E1]/40">
-          <FileDown className="w-3.5 h-3.5"/>
-          Export PDF
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowImportBlock(true)}
+            className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl bg-[#ECFDF5] text-[#14B8A6] hover:bg-[#99F6E4] hover:text-[#0F172A] transition-all border border-[#CBD5E1]/40">
+            <Plus className="w-3.5 h-3.5"/>
+            Import Block
+          </button>
+          <button onClick={() => setShowExport(true)}
+            className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl bg-[#FFFFFF] text-[#0F172A] hover:bg-[#99F6E4]/20 hover:text-[#14B8A6] transition-all border border-[#CBD5E1]/40">
+            <FileDown className="w-3.5 h-3.5"/>
+            Export PDF
+          </button>
+        </div>
       </div>
-      {showExport && <ExportModal workouts={workouts} onClose={() => setShowExport(false)}/>}
+      {showExport && <ExportModal workouts={workouts} weeklyPlan={weeklyPlan} onClose={() => setShowExport(false)}/>}
+      {showImportBlock && <ImportTrainingBlockModal user={user} onImportSuccess={() => { setShowToast(true); setTimeout(() => setShowToast(false), 3000); }} onClose={() => setShowImportBlock(false)}/>}
       {groupedDates.map(dateKey => (
         <div key={dateKey} className="mb-2">
           {/* Date separator */}
