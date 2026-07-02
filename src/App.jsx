@@ -863,7 +863,7 @@ export default function App() {
       <main className="max-w-md md:max-w-5xl mx-auto px-4 py-6 md:pt-14 space-y-6">
         {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={effectivePlan} activeTrainingBlock={activeTrainingBlock} />}
         {activeTab === 'add' && <QuickInput onAdd={handleAddData} workouts={workouts} weeklyPlan={weeklyPlan} />}
-        {activeTab === 'history' && <History workouts={workouts} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
+        {activeTab === 'history' && <History workouts={workouts} weeklyPlan={weeklyPlan} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
         {activeTab === 'plan' && <WeeklyPlanTab weeklyPlan={weeklyPlan} setWeeklyPlan={setWeeklyPlan} workouts={workouts} user={user} />}
       </main>
 
@@ -2133,7 +2133,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
 }
 
 
-function History({ workouts, onDelete, onEdit }) {
+function History({ workouts, weeklyPlan, onDelete, onEdit }) {
   const [expanded, setExpanded] = useState({});
   const [showExport, setShowExport] = React.useState(false);
   const [showImportBlock, setShowImportBlock] = React.useState(false);
