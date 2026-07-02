@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import * as dashboardUtils from './utils/dashboard';
-import { getPlannedSession, getNextSession } from './utils/planning';
+import { getPlannedSession, getNextSession, getNextSessionFromBlock } from './utils/planning';
 import { generateCoachInsight } from './utils/coachInsight';
 import { runTrainingPipeline } from './utils/trainingPlayground';
 import { validateTrainingBlock } from './utils/trainingBlockValidator';
@@ -734,6 +734,27 @@ export default function App() {
       const updatedWorkouts = [...workouts, { id: newId, ...newData }];
       setActiveTab('dashboard');
 
+      // ─── Session Completion: mark Training Block session as completed ──
+      if (activeTrainingBlock?.id && activeTrainingBlock?.trainingBlock?.sessions) {
+        // Find the pending session using current workouts (before adding new one)
+        const pending = getNextSessionFromBlock({
+          trainingBlock: activeTrainingBlock.trainingBlock,
+          completedWorkouts: workouts, // old workouts, new one not yet added
+        });
+        if (pending) {
+          // Map workout type to session type
+          const matchesGym   = newData.type === 'Gym'  && pending.session.type === 'Strength';
+          const matchesRun   = newData.type === 'Lari' && pending.session.type === 'Run';
+          if (matchesGym || matchesRun) {
+            const blockDocRef = doc(db, 'users', user.uid, 'trainingBlocks', activeTrainingBlock.id);
+            await updateDoc(blockDocRef, {
+              [`sessions.${pending.index}.status`]: 'completed',
+              [`sessions.${pending.index}.completedAt`]: serverTimestamp(),
+            });
+          }
+        }
+      }
+
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
@@ -840,7 +861,7 @@ export default function App() {
 
       {/* MAIN CONTENT */}
       <main className="max-w-md md:max-w-5xl mx-auto px-4 py-6 md:pt-14 space-y-6">
-        {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={effectivePlan} />}
+        {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={effectivePlan} activeTrainingBlock={activeTrainingBlock} />}
         {activeTab === 'add' && <QuickInput onAdd={handleAddData} workouts={workouts} weeklyPlan={weeklyPlan} />}
         {activeTab === 'history' && <History workouts={workouts} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
         {activeTab === 'plan' && <WeeklyPlanTab weeklyPlan={weeklyPlan} setWeeklyPlan={setWeeklyPlan} workouts={workouts} user={user} />}
@@ -1180,7 +1201,7 @@ function RunMetric({ label, value, accent = false }) {
   );
 }
 
-function Dashboard({ workouts, weeklyPlan }) {
+function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
   const summary = getDashboardSummary(workouts, weeklyPlan);
   const strengthProgress = useMemo(() => getExerciseProgress(workouts), [workouts]);
   const runningProgress = useMemo(() => getRunningProgress(workouts), [workouts]);
@@ -1219,8 +1240,16 @@ function Dashboard({ workouts, weeklyPlan }) {
 
   // ─── Planning Engine + Coach Insight ────────────────────────────────────
   const nextSession = useMemo(() => {
+    // Prefer Training Block (session-order-based) when available
+    if (activeTrainingBlock?.trainingBlock?.sessions) {
+      return getNextSessionFromBlock({
+        trainingBlock: activeTrainingBlock.trainingBlock,
+        completedWorkouts: workouts,
+      });
+    }
+    // Fallback to WeeklyPlan (weekday-based) for legacy compatibility
     return getNextSession({ weeklyPlan, completedWorkouts: workouts, currentDate: new Date() });
-  }, [weeklyPlan, workouts]);
+  }, [activeTrainingBlock, weeklyPlan, workouts]);
 
   const coachInsight = useMemo(() => {
     return generateCoachInsight({

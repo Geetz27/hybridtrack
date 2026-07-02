@@ -124,3 +124,52 @@ export function getNextSession({ weeklyPlan, completedWorkouts, currentDate }) {
 
   return null;
 }
+
+/**
+ * Determine the next session from a Training Block based on session order,
+ * ignoring weekdays entirely.
+ *
+ * Iterates through trainingBlock.sessions[] in order. Returns the first
+ * non-Rest session whose type does not have a matching completed workout.
+ *
+ * Matching logic:
+ *   - Strength session → completed by a workout with type === 'Gym'
+ *   - Run session      → completed by a workout with type === 'Lari'
+ *   - Rest session     → skipped (never "next")
+ *
+ * @param {object}  options
+ * @param {object}  options.trainingBlock     - Training Block object with { sessions: [...] }
+ * @param {Array}   options.completedWorkouts - Array of workout objects, each with { type }
+ * @returns {{ session: object, index: number } | null}
+ *   - session: the planned session object from trainingBlock.sessions[index]
+ *   - index:   the index of the session in the sessions array
+ *   Returns null if all sessions are completed or no block is provided.
+ */
+export function getNextSessionFromBlock({ trainingBlock, completedWorkouts }) {
+  if (!trainingBlock?.sessions || !Array.isArray(completedWorkouts)) return null;
+
+  // Build a Set of completed workout types for O(1) lookup
+  const completedTypes = new Set();
+  completedWorkouts.forEach(w => {
+    if (w.type) {
+      completedTypes.add(w.type);
+    }
+  });
+
+  // Walk sessions in order
+  for (let i = 0; i < trainingBlock.sessions.length; i++) {
+    const session = trainingBlock.sessions[i];
+    if (!session || session.type === 'Rest') continue;
+
+    // Map Training Block type to workout type
+    const expectedWorkoutType = session.type === 'Strength' ? 'Gym'
+                              : session.type === 'Run' ? 'Lari'
+                              : session.type;
+
+    if (!completedTypes.has(expectedWorkoutType)) {
+      return { session, index: i };
+    }
+  }
+
+  return null;
+}
