@@ -717,12 +717,10 @@ export default function App() {
           return bTime - aTime;
         });
         setActiveTrainingBlock(sorted[0]);
-        console.log('[DEBUG 4C] activeTrainingBlock set:', sorted[0]);
-        console.log('[DEBUG 4C] activeTrainingBlock.trainingBlock?.sessions:', sorted[0]?.trainingBlock?.sessions);
       } else {
         setActiveTrainingBlock(null);
-        console.log('[DEBUG 4C] activeTrainingBlock set to null — no active blocks found');
       }
+
     }, (error) => {
       console.error("Error fetching training blocks:", error);
       setActiveTrainingBlock(null);
@@ -757,10 +755,7 @@ export default function App() {
 
   // --- 6. TAMBAH & HAPUS DATA ---
   const handleAddData = async (newData) => {
-    console.log('[AUDIT 1] handleAddData() ENTERED');
-    console.log('[AUDIT 1] newData:', JSON.stringify(newData));
     if (!user) {
-      console.log('[AUDIT 1] EARLY RETURN — user is null');
       return;
     }
     try {
@@ -774,29 +769,23 @@ export default function App() {
       // ─── Session Completion: mark Training Block session as completed ──
       // EPIC-011: Adaptive Session Completion — find the earliest pending session
       // matching the workout type, regardless of sequential order.
-      console.log('[AUDIT 2] activeTrainingBlock:', activeTrainingBlock ? 'EXISTS' : 'NULL');
-      console.log('[AUDIT 2] activeTrainingBlock?.id:', activeTrainingBlock?.id);
-      console.log('[AUDIT 2] activeTrainingBlock?.trainingBlock?.sessions:', activeTrainingBlock?.trainingBlock?.sessions ? 'EXISTS' : 'NULL/MISSING');
       if (activeTrainingBlock?.id && activeTrainingBlock?.trainingBlock?.sessions) {
         // Determine which session type to look for based on workout type
         let pending = null;
         if (newData.type === 'Gym') {
-          console.log('[AUDIT 3] newData.type is Gym — calling findPendingStrengthSession()');
           pending = findPendingStrengthSession({
             trainingBlock: activeTrainingBlock.trainingBlock,
+            workoutData: newData,
           });
         } else if (newData.type === 'Lari') {
-          console.log('[AUDIT 3] newData.type is Lari — calling findPendingRunSession()');
           pending = findPendingRunSession({
             trainingBlock: activeTrainingBlock.trainingBlock,
+            workoutData: newData,
           });
-        } else {
-          console.log('[AUDIT 3] newData.type is neither Gym nor Lari — no session completion needed');
+
         }
-        console.log('[AUDIT 4] findPending*Session() returned:', pending ? JSON.stringify({ session: { id: pending.session.id, title: pending.session.title, type: pending.session.type, status: pending.session.status }, index: pending.index }) : 'null');
         if (pending) {
           const blockDocRef = doc(db, 'users', user.uid, 'trainingBlocks', activeTrainingBlock.id);
-          console.log('[AUDIT 6] ABOUT TO CALL updateDoc() — blockDocRef path:', `users/${user.uid}/trainingBlocks/${activeTrainingBlock.id}`);
           // Clone the entire sessions array, modify the target session, then replace the whole array.
           // NOTE: serverTimestamp() cannot be used inside arrays, so completedAt stays null.
           const updatedSessions = [...activeTrainingBlock.trainingBlock.sessions];
@@ -805,25 +794,19 @@ export default function App() {
             status: 'completed',
             completedAt: null,
           };
-          console.log('[AUDIT 6] replacing trainingBlock.sessions with cloned array, index', pending.index, 'status set to completed');
           await updateDoc(blockDocRef, {
             'trainingBlock.sessions': updatedSessions,
           });
-          console.log('[AUDIT 7] updateDoc() COMPLETED SUCCESSFULLY');
-        } else {
-          console.log('[AUDIT 4] findPending*Session() returned null — no pending session of matching type found');
         }
-      } else {
-        console.log('[AUDIT 2] CONDITION FAILED — activeTrainingBlock?.id && activeTrainingBlock?.trainingBlock?.sessions is falsy');
       }
 
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
-      console.error('[AUDIT 8] CAUGHT EXCEPTION:', err);
-      console.error('[AUDIT 8] Full error:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      console.error(err);
     }
   };
+
 
   const handleDelete = async (id) => {
     if (!user) return;
@@ -1561,6 +1544,7 @@ function WeeklyTrainingBlock({ sessions, name, goal }) {
   };
 
   // ── Progress computation (non-Rest sessions only) ──
+
   const nonRestSessions = sessions.filter(s => s.type !== 'Rest');
   const completedCount = nonRestSessions.filter(s => s.status === 'completed').length;
   const totalCount = nonRestSessions.length;

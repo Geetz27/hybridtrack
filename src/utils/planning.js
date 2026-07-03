@@ -126,63 +126,125 @@ export function getNextSession({ weeklyPlan, completedWorkouts, currentDate }) {
 }
 
 /**
- * Find the earliest pending Strength session in a Training Block.
+ * Normalize a string for title matching:
+ * - lowercase
+ * - trim
+ * - remove "session" and "workout" substrings
+ */
+function normalizeTitle(value) {
+  if (!value || typeof value !== 'string') return '';
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/\bsession\b/g, '')
+    .replace(/\bworkout\b/g, '')
+    .trim();
+}
+
+/**
+ * Find a pending Strength session in a Training Block.
  *
- * Scans all sessions and returns the first one where:
- *   - type === "Strength"
- *   - status !== "completed"
- *
- * This allows the user to complete sessions in any order (e.g. Run before Push)
- * without being blocked by sequential order.
+ * Matching priority:
+ *   1. Exact case-insensitive match: workout category === session title
+ *   2. Normalized match: after lowercasing, trimming, removing "session"/"workout"
+ *   3. Fallback: earliest pending Strength session (original behavior)
  *
  * @param {object}  options
  * @param {object}  options.trainingBlock - Training Block object with { sessions: [...] }
+ * @param {object}  [options.workoutData] - The workout being logged (has { category })
  * @returns {{ session: object, index: number } | null}
- *   - session: the pending Strength session object
- *   - index:   the index of the session in the sessions array
- *   Returns null if no pending Strength session is found.
  */
-export function findPendingStrengthSession({ trainingBlock }) {
+export function findPendingStrengthSession({ trainingBlock, workoutData }) {
   if (!trainingBlock?.sessions) return null;
+
+  const pendingStrength = [];
 
   for (let i = 0; i < trainingBlock.sessions.length; i++) {
     const session = trainingBlock.sessions[i];
     if (session?.type === 'Strength' && session?.status !== 'completed') {
-      return { session, index: i };
+      pendingStrength.push({ session, index: i });
     }
   }
 
-  return null;
+  if (pendingStrength.length === 0) return null;
+
+  // Priority 1: Exact case-insensitive match
+  if (workoutData?.category) {
+    const cat = workoutData.category.toLowerCase().trim();
+    for (const item of pendingStrength) {
+      if (item.session.title?.toLowerCase().trim() === cat) {
+        return item;
+      }
+    }
+  }
+
+  // Priority 2: Normalized match
+  if (workoutData?.category) {
+    const normalizedCat = normalizeTitle(workoutData.category);
+    if (normalizedCat) {
+      for (const item of pendingStrength) {
+        if (normalizeTitle(item.session.title) === normalizedCat) {
+          return item;
+        }
+      }
+    }
+  }
+
+  // Priority 3: Fallback — earliest pending Strength session
+  return pendingStrength[0];
 }
 
 /**
- * Find the earliest pending Run session in a Training Block.
+ * Find a pending Run session in a Training Block.
  *
- * Scans all sessions and returns the first one where:
- *   - type === "Run"
- *   - status !== "completed"
- *
- * This allows the user to complete sessions in any order (e.g. Run before Push)
- * without being blocked by sequential order.
+ * Matching priority:
+ *   1. Exact case-insensitive match: workout category === session title
+ *   2. Normalized match: after lowercasing, trimming, removing "session"/"workout"
+ *   3. Fallback: earliest pending Run session (original behavior)
  *
  * @param {object}  options
  * @param {object}  options.trainingBlock - Training Block object with { sessions: [...] }
+ * @param {object}  [options.workoutData] - The workout being logged (has { category })
  * @returns {{ session: object, index: number } | null}
- *   - session: the pending Run session object
- *   - index:   the index of the session in the sessions array
- *   Returns null if no pending Run session is found.
  */
-export function findPendingRunSession({ trainingBlock }) {
+export function findPendingRunSession({ trainingBlock, workoutData }) {
   if (!trainingBlock?.sessions) return null;
+
+  const pendingRun = [];
 
   for (let i = 0; i < trainingBlock.sessions.length; i++) {
     const session = trainingBlock.sessions[i];
     if (session?.type === 'Run' && session?.status !== 'completed') {
-      return { session, index: i };
+      pendingRun.push({ session, index: i });
     }
   }
 
-  return null;
+  if (pendingRun.length === 0) return null;
+
+  // Priority 1: Exact case-insensitive match
+  if (workoutData?.category) {
+    const cat = workoutData.category.toLowerCase().trim();
+    for (const item of pendingRun) {
+      if (item.session.title?.toLowerCase().trim() === cat) {
+        return item;
+      }
+    }
+  }
+
+  // Priority 2: Normalized match
+  if (workoutData?.category) {
+    const normalizedCat = normalizeTitle(workoutData.category);
+    if (normalizedCat) {
+      for (const item of pendingRun) {
+        if (normalizeTitle(item.session.title) === normalizedCat) {
+          return item;
+        }
+      }
+    }
+  }
+
+  // Priority 3: Fallback — earliest pending Run session
+  return pendingRun[0];
 }
 
 /**
@@ -214,32 +276,27 @@ export function getNextSessionFromBlock({ trainingBlock, completedWorkouts }) {
   // Session completion is determined solely by session.status inside the Training Block,
   // which is persisted by EPIC-010 (handleAddData in App.jsx).
   if (!trainingBlock?.sessions) {
-    console.log('[DEBUG getNextSessionFromBlock] EARLY RETURN null — trainingBlock?.sessions:', !!trainingBlock?.sessions);
     return null;
+
   }
 
   // Walk sessions in order
   for (let i = 0; i < trainingBlock.sessions.length; i++) {
     const session = trainingBlock.sessions[i];
-    console.log(`[DEBUG getNextSessionFromBlock] Checking session index=${i} id=${session?.id || '(no id)'} title="${session?.title || '(no title)'}" status="${session?.status || '(no status)'}" type="${session?.type || '(no type)'}"`);
 
     if (!session) {
-      console.log(`[DEBUG getNextSessionFromBlock]   → skipped because session is falsy`);
       continue;
     }
     if (session.type === 'Rest') {
-      console.log(`[DEBUG getNextSessionFromBlock]   → skipped because type is Rest`);
       continue;
     }
     if (session.status === 'completed') {
-      console.log(`[DEBUG getNextSessionFromBlock]   → skipped because status is "completed"`);
       continue;
     }
 
-    console.log(`[DEBUG getNextSessionFromBlock]   → ACCEPTED — returning session index=${i}`);
     return { session, index: i };
   }
 
-  console.log('[DEBUG getNextSessionFromBlock] RETURNING null — all non-Rest sessions are completed');
   return null;
+
 }
