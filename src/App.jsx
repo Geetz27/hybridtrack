@@ -77,6 +77,29 @@ function sanitizeForFirestore(value) {
 }
 
 // ─── WEEKLY PLAN SCHEMA ─────────────────────────────────────────────────────
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]);
+}
+
+function getGymSchema(workout) {
+  if (Array.isArray(workout?.exercises)) return 'v3';
+  if (Array.isArray(workout?.sets)) return 'v2';
+  if (
+    typeof workout?.exercise === 'string' &&
+    workout.weight !== undefined &&
+    typeof workout.sets === 'number' &&
+    Number.isFinite(workout.sets) &&
+    workout.reps !== undefined
+  ) return 'v1';
+  return 'unknown';
+}
+
 const DEFAULT_WEEKLY_PLAN = {
   weekStart: '2026-05-18',
   weekEnd:   '2026-05-24',
@@ -2659,6 +2682,7 @@ function ExportModal({ workouts, weeklyPlan, onClose }) {
   const [from, setFrom] = React.useState(weekAgo);
   const [to, setTo]     = React.useState(today);
   const [aiStatus, setAiStatus] = React.useState('idle'); // 'idle' | 'generating' | 'copied' | 'error'
+  const [printError, setPrintError] = React.useState('');
 
   const handleGenerateAIReview = async () => {
     setAiStatus('generating');
@@ -2704,25 +2728,95 @@ function ExportModal({ workouts, weeklyPlan, onClose }) {
 
   const handlePrint = () => {
     const win = window.open('', '_blank', 'width=960,height=700');
-    const runRows = runs.map(w => `<tr>
-      <td>${fmtDate(w.date)}</td><td>${w.category||'-'}</td>
-      <td>${w.distance||'-'} km</td><td>${w.duration||'-'} mnt</td>
-      <td>${fmtPace(w.pace)}</td><td>${w.hr||'-'}</td>
-      <td>${w.cadence||'-'}</td><td>${w.rpe||'-'}</td>
-      <td>${(w.notes||'-').substring(0,60)}</td></tr>`).join('');
+    if (!win) {
+      setPrintError('Popup diblokir. Izinkan popup lalu coba lagi.');
+      return;
+    }
+    setPrintError('');
+    let reportUrl = null;
 
-    const gymRows = gyms.flatMap(w => (w.exercises||[]).map((ex,ei) => `<tr>
-      ${ei===0?`<td rowspan="${(w.exercises||[]).length}">${fmtDate(w.date)}</td>`:''}
-      ${ei===0?`<td rowspan="${(w.exercises||[]).length}">${w.category||'-'}</td>`:''}
-      <td>${ex.exercise||'-'}</td>
-      <td>${(ex.sets||[]).map(s=>`${s.weight}kg×${s.reps}`).join(', ')}</td>
-      <td>${(ex.sets||[]).reduce((a,s)=>a+(parseFloat(s.weight)||0)*(parseInt(s.reps)||0),0).toFixed(0)} kg</td>
-      ${ei===0?`<td rowspan="${(w.exercises||[]).length}">${w.rpe||'-'}</td>`:''}
-      ${ei===0?`<td rowspan="${(w.exercises||[]).length}">${(w.notes||'-').substring(0,60)}</td>`:''}
-    </tr>`)).join('');
+    try {
+      const runRows = runs.map(w => `<tr>
+      <td>${escapeHtml(fmtDate(w.date))}</td><td>${escapeHtml(w.category||'-')}</td>
+      <td>${escapeHtml(w.distance||'-')} km</td><td>${escapeHtml(w.duration||'-')} mnt</td>
+      <td>${escapeHtml(fmtPace(w.pace))}</td><td>${escapeHtml(w.hr||'-')}</td>
+      <td>${escapeHtml(w.cadence||'-')}</td><td>${escapeHtml(w.rpe||'-')}</td>
+      <td>${escapeHtml(String(w.notes||'-').substring(0,60))}</td></tr>`).join('');
+
+      const gymRows = gyms.flatMap(w => {
+        const schema = getGymSchema(w);
+
+        if (schema === 'v1') {
+          const volume = ((parseFloat(w.weight)||0) * w.sets * (parseInt(w.reps)||0)).toFixed(0);
+          return `<tr>
+      <td>${escapeHtml(fmtDate(w.date))}</td>
+      <td>${escapeHtml(w.category||'-')}</td>
+      <td>${escapeHtml(w.exercise||'-')}</td>
+      <td>${escapeHtml(w.sets)} set × ${escapeHtml(w.weight??'-')}kg × ${escapeHtml(w.reps??'-')} reps</td>
+      <td>${escapeHtml(volume)} kg</td>
+      <td>${escapeHtml(w.rpe||'-')}</td>
+      <td>${escapeHtml(String(w.notes||'-').substring(0,60))}</td>
+    </tr>`;
+        }
+
+        if (schema === 'v2') {
+          const sets = w.sets;
+          const setSummary = sets.map(s => `${escapeHtml(s?.weight ?? '-')}kg×${escapeHtml(s?.reps ?? '-')}`).join(', ');
+          const volume = sets.reduce((a,s)=>a+(parseFloat(s?.weight)||0)*(parseInt(s?.reps)||0),0).toFixed(0);
+          return `<tr>
+      <td>${escapeHtml(fmtDate(w.date))}</td>
+      <td>${escapeHtml(w.category||'-')}</td>
+      <td>${escapeHtml(w.exercise||'-')}</td>
+      <td>${setSummary}</td>
+      <td>${escapeHtml(volume)} kg</td>
+      <td>${escapeHtml(w.rpe||'-')}</td>
+      <td>${escapeHtml(String(w.notes||'-').substring(0,60))}</td>
+    </tr>`;
+        }
+
+        if (schema === 'unknown') {
+          return `<tr>
+      <td>${escapeHtml(fmtDate(w.date))}</td>
+      <td>${escapeHtml(w.category||'-')}</td>
+      <td>-</td><td>-</td><td>-</td>
+      <td>${escapeHtml(w.rpe||'-')}</td>
+      <td>${escapeHtml(String(w.notes||'-').substring(0,60))}</td>
+    </tr>`;
+        }
+
+        const exercises = w.exercises;
+        const rowspan = Math.max(1, Math.trunc(exercises.length));
+
+        return exercises.map((ex,ei) => {
+          const sets = Array.isArray(ex?.sets) ? ex.sets : [];
+          const setSummary = sets.map(s => `${escapeHtml(s?.weight ?? '-')}kg×${escapeHtml(s?.reps ?? '-')}`).join(', ');
+          const volume = sets.reduce((a,s)=>a+(parseFloat(s?.weight)||0)*(parseInt(s?.reps)||0),0).toFixed(0);
+
+          return `<tr>
+      ${ei===0?`<td rowspan="${rowspan}">${escapeHtml(fmtDate(w.date))}</td>`:''}
+      ${ei===0?`<td rowspan="${rowspan}">${escapeHtml(w.category||'-')}</td>`:''}
+      <td>${escapeHtml(ex?.exercise||'-')}</td>
+      <td>${setSummary}</td>
+      <td>${escapeHtml(volume)} kg</td>
+      ${ei===0?`<td rowspan="${rowspan}">${escapeHtml(w.rpe||'-')}</td>`:''}
+      ${ei===0?`<td rowspan="${rowspan}">${escapeHtml(String(w.notes||'-').substring(0,60))}</td>`:''}
+    </tr>`;
+        });
+      }).join('');
+
+    const escapedFrom = escapeHtml(from);
+    const escapedTo = escapeHtml(to);
+    const formattedFrom = escapeHtml(fmtDate(from));
+    const formattedTo = escapeHtml(fmtDate(to));
+    const generatedAt = escapeHtml(new Date().toLocaleString('id-ID'));
+    const runCount = escapeHtml(runs.length);
+    const totalDistance = escapeHtml(runs.reduce((a,w)=>a+(parseFloat(w.distance)||0),0).toFixed(1));
+    const totalDuration = escapeHtml(runs.reduce((a,w)=>a+(parseInt(w.duration)||0),0));
+    const gymCount = escapeHtml(gyms.length);
+    const categoryCounts = escapeHtml(`${gyms.filter(w=>w.category==='Push').length}P / ${gyms.filter(w=>w.category==='Pull').length}Pl / ${gyms.filter(w=>w.category==='Legs').length}L`);
 
     const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"/>
-<title>Workout Report ${from} – ${to}</title>
+<title>Workout Report ${escapedFrom} – ${escapedTo}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#1a1a2e;background:#fff;padding:28px 32px}
@@ -2742,13 +2836,13 @@ tr:nth-child(even) td{background:#f8f8fc}
 @media print{body{padding:12px 16px}button{display:none!important}}
 </style></head><body>
 <h1>🏃 Workout Report</h1>
-<p class="sub">Periode: <strong>${fmtDate(from)}</strong> — <strong>${fmtDate(to)}</strong> &nbsp;|&nbsp; Digenerate: ${new Date().toLocaleString('id-ID')}</p>
+<p class="sub">Periode: <strong>${formattedFrom}</strong> — <strong>${formattedTo}</strong> &nbsp;|&nbsp; Digenerate: ${generatedAt}</p>
 <div class="summary">
-  <div class="sbox"><div class="sval">${runs.length}</div><div class="slbl">Sesi Lari</div></div>
-  <div class="sbox"><div class="sval">${runs.reduce((a,w)=>a+(parseFloat(w.distance)||0),0).toFixed(1)} km</div><div class="slbl">Total Jarak</div></div>
-  <div class="sbox"><div class="sval">${runs.reduce((a,w)=>a+(parseInt(w.duration)||0),0)} mnt</div><div class="slbl">Total Waktu</div></div>
-  <div class="sbox"><div class="sval">${gyms.length}</div><div class="slbl">Sesi Gym</div></div>
-  <div class="sbox"><div class="sval">${gyms.filter(w=>w.category==='Push').length}P / ${gyms.filter(w=>w.category==='Pull').length}Pl / ${gyms.filter(w=>w.category==='Legs').length}L</div><div class="slbl">Push/Pull/Legs</div></div>
+  <div class="sbox"><div class="sval">${runCount}</div><div class="slbl">Sesi Lari</div></div>
+  <div class="sbox"><div class="sval">${totalDistance} km</div><div class="slbl">Total Jarak</div></div>
+  <div class="sbox"><div class="sval">${totalDuration} mnt</div><div class="slbl">Total Waktu</div></div>
+  <div class="sbox"><div class="sval">${gymCount}</div><div class="slbl">Sesi Gym</div></div>
+  <div class="sbox"><div class="sval">${categoryCounts}</div><div class="slbl">Push/Pull/Legs</div></div>
 </div>
 
 <h2>🏃 Sesi Lari</h2>
@@ -2765,11 +2859,47 @@ ${gyms.length===0?'<p class="empty">Tidak ada sesi gym pada periode ini.</p>':`
   <th>Set × Reps</th><th>Volume (kg)</th><th>RPE</th><th>Catatan</th>
 </tr></thead><tbody>${gymRows}</tbody></table>`}
 
-<p class="footer">HybridTrack Export • ${new Date().toLocaleString('id-ID')}</p>
-<script>window.onload=()=>{window.print();}</script>
+<p class="footer">HybridTrack Export • ${generatedAt}</p>
+<script>
+(() => {
+  let printStarted = false;
+  window.addEventListener('load', () => {
+    window.setTimeout(() => {
+      if (printStarted) return;
+      printStarted = true;
+      try {
+        window.focus();
+        window.print();
+      } catch (error) {
+        console.error('Gagal mencetak laporan:', error);
+      }
+    }, 150);
+  }, { once: true });
+})();
+</script>
 </body></html>`;
-    win.document.write(html);
-    win.document.close();
+      const reportBlob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      reportUrl = URL.createObjectURL(reportBlob);
+      win.location.replace(reportUrl);
+
+      const urlToRevoke = reportUrl;
+      window.setTimeout(() => URL.revokeObjectURL(urlToRevoke), 60000);
+    } catch (error) {
+      console.error('Gagal membuat laporan:', error);
+      if (reportUrl) {
+        try {
+          URL.revokeObjectURL(reportUrl);
+        } catch (revokeError) {
+          console.error('Gagal membersihkan URL laporan:', revokeError);
+        }
+      }
+      try {
+        win.close();
+      } catch (closeError) {
+        console.error('Gagal menutup popup laporan:', closeError);
+      }
+      setPrintError('Laporan gagal dibuat. Silakan coba lagi.');
+    }
   };
 
   return (
@@ -2823,6 +2953,11 @@ ${gyms.length===0?'<p class="empty">Tidak ada sesi gym pada periode ini.</p>':`
           <FileDown className="w-4 h-4"/>
           Export PDF — {filtered.length} sesi
         </button>
+        {printError && (
+          <p role="alert" className="text-xs font-semibold text-red-300 text-center">
+            {printError}
+          </p>
+        )}
 
         <button onClick={handleGenerateAIReview} disabled={aiStatus === 'generating'}
           className="w-full py-3 rounded-xl font-black text-sm bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all flex items-center justify-center gap-2">
