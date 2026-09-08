@@ -1,11 +1,9 @@
-import React from 'react';
-
 export default function PaceTrendChart({ data }) {
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Running Pace Trend</h3>
-        <p className="text-xs text-gray-400">No running data yet</p>
+      <div className="rounded-2xl border border-[#DCE3EA] bg-white p-4">
+        <h3 className="mb-2 text-sm font-bold text-[#0F172A]">Tren pace lari</h3>
+        <p className="text-xs text-[#64748B]">Belum ada data lari.</p>
       </div>
     );
   }
@@ -14,9 +12,9 @@ export default function PaceTrendChart({ data }) {
   const validData = data.filter(d => d && d.pace != null && d.pace > 0);
   if (validData.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Running Pace Trend</h3>
-        <p className="text-xs text-gray-400">No running pace data yet</p>
+      <div className="rounded-2xl border border-[#DCE3EA] bg-white p-4">
+        <h3 className="mb-2 text-sm font-bold text-[#0F172A]">Tren pace lari</h3>
+        <p className="text-xs text-[#64748B]">Belum ada data pace yang valid.</p>
       </div>
     );
   }
@@ -50,17 +48,17 @@ export default function PaceTrendChart({ data }) {
     : 'neutral';
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+    <div className="rounded-2xl border border-[#DCE3EA] bg-white p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Running Pace Trend</h3>
+        <h3 className="text-sm font-bold text-[#0F172A]">Tren pace lari</h3>
         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
           trend === 'improving'
-            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+            ? 'bg-[#ECFDF5] text-[#047857]'
             : trend === 'declining'
-            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-            : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+            ? 'bg-[#FEF2F2] text-[#B91C1C]'
+            : 'bg-[#F1F5F9] text-[#64748B]'
         }`}>
-          {trend === 'improving' ? '↑ Faster' : trend === 'declining' ? '↓ Slower' : '—'}
+          {trend === 'improving' ? '↑ Lebih cepat' : trend === 'declining' ? '↓ Lebih lambat' : '—'}
         </span>
       </div>
 
@@ -72,10 +70,10 @@ export default function PaceTrendChart({ data }) {
           <line x1={padding.left} y1={padding.top + chartHeight} x2={width - padding.right} y2={padding.top + chartHeight} stroke="#e5e7eb" strokeWidth="0.5" />
 
           {/* Area fill */}
-          <path d={areaPath} fill="#3b82f6" opacity="0.1" />
+          <path d={areaPath} fill="#0EA5E9" opacity="0.1" />
 
           {/* Line */}
-          <path d={linePath} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={linePath} fill="none" stroke="#0284C7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Data points */}
           {points.map((p, i) => (
@@ -85,7 +83,7 @@ export default function PaceTrendChart({ data }) {
               cy={p.y}
               r="3"
               fill="white"
-              stroke="#3b82f6"
+              stroke="#0284C7"
               strokeWidth="2"
               className="hover:r-5 transition-all"
             >
@@ -110,10 +108,10 @@ export default function PaceTrendChart({ data }) {
       </div>
 
       {/* Stats */}
-      <div className="flex justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-        <span>Best: {validData.reduce((a, b) => a.pace < b.pace ? a : b).paceFormatted}</span>
-        <span>Latest: {validData[validData.length - 1].paceFormatted}</span>
-        <span>{validData.length} runs</span>
+      <div className="mt-2 flex justify-between border-t border-[#E2E8F0] pt-2 text-xs text-[#64748B]">
+        <span>Terbaik: {validData.reduce((a, b) => a.pace < b.pace ? a : b).paceFormatted}</span>
+        <span>Terbaru: {validData[validData.length - 1].paceFormatted}</span>
+        <span>{validData.length} lari</span>
       </div>
     </div>
   );

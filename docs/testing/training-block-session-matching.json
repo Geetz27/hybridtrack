@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "DeepSeek",
+  "generatedAt": "2026-07-03T00:00:00.000Z",
+  "trainingBlock": {
+    "name": "Test Block — Bug Hunt",
+    "goal": "Test session completion persistence across multiple workout logs",
+    "sessions": [
+      {
+        "id": "s1",
+        "order": 1,
+        "type": "Strength",
+        "title": "Push",
+        "description": "Upper body pushing strength session focusing on chest, shoulders, and triceps.",
+        "coachNotes": "Focus on controlled negatives on bench press.",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "strength",
+          "exercises": [
+            {
+              "name": "Bench Press",
+              "sets": 3,
+              "reps": "8-10",
+              "weight": 40,
+              "notes": "Keep elbows at 45 degrees"
+            },
+            {
+              "name": "Incline DB Press",
+              "sets": 3,
+              "reps": "10-12",
+              "weight": 20,
+              "notes": "Full range of motion"
+            },
+            {
+              "name": "Tricep Pushdown",
+              "sets": 3,
+              "reps": "12-15",
+              "weight": 25,
+              "notes": "Squeeze at the bottom"
+            }
+          ]
+        }
+      },
+      {
+        "id": "s2",
+        "order": 2,
+        "type": "Run",
+        "title": "Easy Run",
+        "description": "Recovery run to build aerobic base and flush out fatigue.",
+        "coachNotes": "Keep heart rate low, conversational pace.",
+        "status": "pending",
+        "priority": "medium",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "run",
+          "distance": 3.5,
+          "intensity": "Easy",
+          "notes": "Stay relaxed, focus on form"
+        }
+      },
+      {
+        "id": "s3",
+        "order": 3,
+        "type": "Strength",
+        "title": "Pull",
+        "description": "Upper body pulling strength session focusing on back and biceps.",
+        "coachNotes": "Focus on scapular retraction at the start of each pull.",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "strength",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 3,
+              "reps": "8-10",
+              "weight": 35,
+              "notes": "Pull to upper chest"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 3,
+              "reps": "10-12",
+              "weight": 40,
+              "notes": "Squeeze shoulder blades together"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 3,
+              "reps": "12-15",
+              "weight": 30,
+              "notes": "External rotation at the end"
+            }
+          ]
+        }
+      },
+      {
+        "id": "s4",
+        "order": 4,
+        "type": "Run",
+        "title": "Easy Run",
+        "description": "Aerobic endurance run at a comfortable pace.",
+        "coachNotes": "Slightly longer than the first run of the week.",
+        "status": "pending",
+        "priority": "medium",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "run",
+          "distance": 4.0,
+          "intensity": "Easy",
+          "notes": "Maintain steady effort throughout"
+        }
+      },
+      {
+        "id": "s5",
+        "order": 5,
+        "type": "Strength",
+        "title": "Legs",
+        "description": "Lower body strength session focusing on quads, hamstrings, and glutes.",
+        "coachNotes": "Warm up thoroughly before heavy sets.",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "strength",
+          "exercises": [
+            {
+              "name": "Leg Press",
+              "sets": 3,
+              "reps": "10-12",
+              "weight": 60,
+              "notes": "Full range of motion"
+            },
+            {
+              "name": "RDL",
+              "sets": 3,
+              "reps": "8-10",
+              "weight": 25,
+              "notes": "Keep back straight"
+            },
+            {
+              "name": "Leg Curl",
+              "sets": 3,
+              "reps": "12-15",
+              "weight": 40,
+              "notes": "Control the negative"
+            }
+          ]
+        }
+      },
+      {
+        "id": "s6",
+        "order": 6,
+        "type": "Rest",
+        "title": "Rest",
+        "description": "Full recovery day. No training scheduled.",
+        "coachNotes": "Focus on nutrition, hydration, and sleep.",
+        "status": "pending",
+        "priority": "low",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "rest"
+        }
+      }
+    ]
+  }
+}

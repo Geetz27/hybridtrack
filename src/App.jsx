@@ -1,24 +1,35 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import * as dashboardUtils from './utils/dashboard';
-import { getPlannedSession, getNextSession, getNextSessionFromBlock, findPendingStrengthSession, findPendingRunSession } from './utils/planning';
+import { getPlannedSession, getNextSessionFromBlock, findPendingStrengthSession, findPendingRunSession } from './utils/planning';
 import { generateCoachInsight } from './utils/coachInsight';
 import { generateKnowledgeSnapshot } from './utils/knowledge';
 import { buildCoachReport } from './utils/coachReport';
 import { buildDeepSeekRequest } from './utils/aiAdapter';
-import { runTrainingPipeline } from './utils/trainingPlayground';
 import { validateTrainingBlock } from './utils/trainingBlockValidator';
 import { normalizeTrainingBlock } from './utils/trainingBlockNormalizer';
+import { getAISettings, saveAISettings } from './services/settings/settingsStore';
+import { loadAthleteProfile, saveAthleteProfile } from './services/profile/athleteProfileService';
+import AthleteProfileModal from './components/coach/AthleteProfileModal';
+import AiSettingsModal from './components/coach/AiSettingsModal';
 import { 
   Activity, Dumbbell, Flame, PlusCircle, List, 
   CheckCircle2, Timer, Heart, CalendarDays, TrendingUp,
   BrainCircuit, AlertTriangle, Moon, Target, Award,
-  ChevronRight, X, MessageSquare, Zap, BarChart2, Trash2, LogOut, ChevronDown, ChevronUp, Pencil, ClipboardList, Plus, Edit3, Save, FileDown, Clock
+  ChevronRight, X, MessageSquare, Zap, BarChart2, Trash2, LogOut, ChevronDown, ChevronUp, Pencil, ClipboardList, Plus, Edit3, Save, FileDown, Clock, Settings, User
 } from 'lucide-react';
 
 // --- 1. IMPORT FIREBASE ---
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc, updateDoc, serverTimestamp, query, where, getDocs, writeBatch } from 'firebase/firestore';
+
+const VolumeTrendChart = React.lazy(() => import('./components/dashboard/VolumeTrendChart'));
+const PaceTrendChart = React.lazy(() => import('./components/dashboard/PaceTrendChart'));
+const PersonalRecords = React.lazy(() => import('./components/dashboard/PersonalRecords'));
+
+function DashboardFallback() {
+  return <div className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-700" />;
+}
 
 // --- 2. KUNCI FIREBASE MILIKMU ---
 const firebaseConfig = {
@@ -236,7 +247,220 @@ const SESSION_COLORS = {
 };
 const getSessionColor = (name) => SESSION_COLORS[name] || SESSION_COLORS['Rest'];
 
-function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
+function parseTrainingBlockDate(value) {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const [, year, month, day] = match.map(Number);
+  const date = new Date(year, month - 1, day, 12);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return date;
+}
+
+function toTrainingBlockDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getTrainingSessionDateKey(trainingBlock, session, index) {
+  if (parseTrainingBlockDate(session.scheduledDate)) return session.scheduledDate;
+
+  const [weekStart, weekEnd] = typeof trainingBlock.week === 'string'
+    ? trainingBlock.week.split('/')
+    : [];
+  const startDate = parseTrainingBlockDate(weekStart);
+  if (!startDate) return null;
+
+  const order = Number.isInteger(session.order) && session.order > 0 ? session.order : index + 1;
+  const derivedDate = new Date(startDate);
+  derivedDate.setDate(startDate.getDate() + order - 1);
+
+  const endDate = parseTrainingBlockDate(weekEnd);
+  if (endDate && derivedDate > endDate) return null;
+  return toTrainingBlockDateKey(derivedDate);
+}
+
+function formatTrainingBlockDate(dateKey, includeWeekday = true) {
+  const date = parseTrainingBlockDate(dateKey);
+  if (!date) return '';
+
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: includeWeekday ? 'short' : undefined,
+    day: 'numeric',
+    month: 'short',
+  }).format(date);
+}
+
+function getTrainingPrescriptionSummary(session) {
+  const prescription = session.prescription || {};
+
+  if (session.type === 'Strength') {
+    const exerciseCount = Array.isArray(prescription.exercises) ? prescription.exercises.length : 0;
+    return exerciseCount > 0 ? `${exerciseCount} gerakan` : 'Latihan kekuatan';
+  }
+
+  if (session.type === 'Run') {
+    const parts = [];
+    if (Number.isFinite(prescription.distance)) parts.push(`${prescription.distance} km`);
+    if (Number.isFinite(prescription.duration)) parts.push(`${prescription.duration} menit`);
+    if (prescription.intensity) parts.push(prescription.intensity);
+    return parts.join(' · ') || 'Latihan lari';
+  }
+
+  return 'Istirahat';
+}
+
+function getTrainingSessionStatus(session, dateKey) {
+  if (session.status === 'completed') {
+    return { label: 'Selesai', className: 'text-[#0F766E]', icon: CheckCircle2 };
+  }
+  if (session.status === 'skipped') {
+    return { label: 'Dilewati', className: 'text-[#B45309]', icon: X };
+  }
+
+  const todayKey = toTrainingBlockDateKey(new Date());
+  if (dateKey === todayKey) {
+    return { label: 'Hari ini', className: 'text-[#0F766E]', icon: Clock };
+  }
+  if (dateKey && dateKey < todayKey) {
+    return { label: 'Belum selesai', className: 'text-[#B45309]', icon: Clock };
+  }
+  return { label: 'Terjadwal', className: 'text-[#64748B]', icon: Clock };
+}
+
+function ActiveTrainingBlockProgram({ activeTrainingBlock, onShowLegacy }) {
+  const trainingBlock = activeTrainingBlock.trainingBlock;
+  const sessions = [...(Array.isArray(trainingBlock.sessions) ? trainingBlock.sessions : [])]
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  const datedSessions = sessions.map((session, index) => ({
+    session,
+    dateKey: getTrainingSessionDateKey(trainingBlock, session, index),
+  }));
+  const [weekStart, weekEnd] = typeof trainingBlock.week === 'string'
+    ? trainingBlock.week.split('/')
+    : [];
+  const rangeLabel = weekStart && weekEnd
+    ? `${formatTrainingBlockDate(weekStart, false)} - ${formatTrainingBlockDate(weekEnd, false)}`
+    : 'Tanggal belum tersedia';
+
+  return (
+    <div className="animate-in fade-in overflow-hidden rounded-[28px] border border-[#DCE3EA] bg-[#F8FAFC] shadow-[0_20px_50px_rgba(17,24,39,0.06)]">
+      <header className="flex flex-col gap-3 border-b border-[#DCE3EA] bg-white px-4 py-4 sm:flex-row sm:items-start sm:justify-between md:px-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[#0F766E]">
+            <ClipboardList className="h-5 w-5 flex-shrink-0" />
+            <span className="text-xs font-bold uppercase">Program aktif</span>
+          </div>
+          <h2 className="mt-1 text-lg font-black text-[#0F172A]">{trainingBlock.name}</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-5 text-[#475569]">{trainingBlock.goal}</p>
+          <p className="mt-2 text-xs font-bold text-[#64748B]">{rangeLabel} · {sessions.length} sesi</p>
+        </div>
+        <button
+          type="button"
+          onClick={onShowLegacy}
+          className="inline-flex min-h-11 flex-shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-[#CBD5E1] bg-white px-3 text-xs font-bold text-[#334155] transition-colors hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]"
+        >
+          <List className="h-4 w-4" />
+          Plan Lama
+        </button>
+      </header>
+
+      {datedSessions.length > 0 ? (
+        <div className="divide-y divide-[#DCE3EA] bg-white">
+          {datedSessions.map(({ session, dateKey }, index) => {
+            const status = getTrainingSessionStatus(session, dateKey);
+            const StatusIcon = status.icon;
+            const exercises = Array.isArray(session.prescription?.exercises)
+              ? session.prescription.exercises
+              : [];
+
+            return (
+              <details key={session.id || index} className="group">
+                <summary className="grid min-h-[72px] cursor-pointer list-none grid-cols-[64px_minmax(0,1fr)_24px] items-center gap-3 px-4 py-3 transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#14B8A6] [&::-webkit-details-marker]:hidden md:px-5">
+                  <div className="border-r border-[#DCE3EA] pr-3 text-center">
+                    <p className="text-[10px] font-bold uppercase text-[#64748B]">
+                      {dateKey ? formatTrainingBlockDate(dateKey).split(',')[0] : `Sesi ${index + 1}`}
+                    </p>
+                    <p className="mt-1 text-sm font-black text-[#0F172A]">
+                      {dateKey ? formatTrainingBlockDate(dateKey, false) : index + 1}
+                    </p>
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <h3 className="text-sm font-black text-[#0F172A]">{session.title}</h3>
+                      <span className="rounded-md bg-[#EDE9FE] px-1.5 py-0.5 text-[10px] font-bold text-[#6D28D9]">
+                        {session.type}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${status.className}`}>
+                        <StatusIcon className="h-3 w-3" />
+                        {status.label}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-[#64748B]">{getTrainingPrescriptionSummary(session)}</p>
+                  </div>
+
+                  <ChevronDown className="h-5 w-5 text-[#64748B] transition-transform group-open:rotate-180" />
+                </summary>
+
+                <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] px-4 py-4 sm:pl-24 md:pr-5">
+                  {session.description && (
+                    <p className="text-sm leading-6 text-[#334155]">{session.description}</p>
+                  )}
+
+                  {session.type === 'Strength' && exercises.length > 0 && (
+                    <div className="mt-4 divide-y divide-[#DCE3EA] border-y border-[#DCE3EA]">
+                      {exercises.map((exercise, exerciseIndex) => {
+                        const sets = Array.isArray(exercise.sets) ? exercise.sets : [];
+                        return (
+                          <div key={`${exercise.name}-${exerciseIndex}`} className="py-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <p className="text-sm font-bold text-[#0F172A]">{exercise.name}</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {sets.length > 0 ? sets.map((set, setIndex) => (
+                                  <span key={set.set || setIndex} className="rounded-md bg-[#EDE9FE] px-2 py-1 text-xs font-bold text-[#5B21B6]">
+                                    S{set.set || setIndex + 1}: {set.weight} kg × {set.reps}
+                                  </span>
+                                )) : (
+                                  <span className="text-xs font-bold text-[#475569]">
+                                    {exercise.sets} set × {exercise.reps} @ {exercise.weight} kg
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {exercise.notes && <p className="mt-1 text-xs text-[#64748B]">{exercise.notes}</p>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {session.type === 'Run' && session.prescription?.notes && (
+                    <p className="mt-3 text-xs leading-5 text-[#475569]">{session.prescription.notes}</p>
+                  )}
+
+                  {session.coachNotes && (
+                    <div className="mt-4 border-l-2 border-[#14B8A6] pl-3">
+                      <p className="text-[10px] font-bold uppercase text-[#0F766E]">Catatan latihan</p>
+                      <p className="mt-1 text-xs leading-5 text-[#475569]">{session.coachNotes}</p>
+                    </div>
+                  )}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="bg-white px-4 py-8 text-center text-sm text-[#64748B]">Block aktif belum memiliki sesi.</p>
+      )}
+    </div>
+  );
+}
+
+function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTrainingBlock }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [editingDay, setEditingDay] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
@@ -244,6 +468,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
   const [saveStatus, setSaveStatus] = useState(null);
+  const [showLegacyPlan, setShowLegacyPlan] = useState(false);
 
   // Stale week detection
   const isPlanStale = weeklyPlan.weekEnd && new Date(weeklyPlan.weekEnd) < new Date();
@@ -261,19 +486,16 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
   };
 
   const handleImport = () => {
-    console.log("Import clicked");
-    console.log(user);
-    console.log(user?.uid);
     try {
       const parsed = JSON.parse(importText.trim());
-      console.log(parsed);
+      if (parsed?.schemaVersion === 1 && parsed?.trainingBlock) {
+        throw new Error('Ini adalah format Blok Latihan. Buka menu Input lalu pilih "Impor Blok".');
+      }
       if (!parsed.days || !parsed.weekStart) throw new Error('Format tidak valid. Pastikan ada field "days" dan "weekStart".');
-      console.log("Writing...");
       setWeeklyPlan(parsed);
       setShowImport(false);
       setImportText('');
       setImportError('');
-      console.log("Import success");
     } catch(e) {
       console.error(e);
       setImportError(e.message || 'JSON tidak valid.');
@@ -352,6 +574,15 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
   const dayData = selectedDay ? weeklyPlan.days[selectedDay] : null;
   const editData = editingDay ? editDraft : null;
 
+  if (activeTrainingBlock?.trainingBlock && !showLegacyPlan) {
+    return (
+      <ActiveTrainingBlockProgram
+        activeTrainingBlock={activeTrainingBlock}
+        onShowLegacy={() => setShowLegacyPlan(true)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4 animate-in fade-in rounded-[28px] bg-[radial-gradient(circle_at_top,_#ffffff_0%,_#FFFFFF_58%,_#F5F7F9_100%)] p-4 md:p-5 border border-[#DCE3EA] shadow-[0_20px_50px_rgba(17,24,39,0.06)]">
       {/* Stale week banner */}
@@ -380,20 +611,31 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
         </h2>
 
         <div className="flex items-center gap-1.5">
+          {activeTrainingBlock?.trainingBlock && (
+            <button
+              type="button"
+              onClick={() => setShowLegacyPlan(false)}
+              className="flex min-h-11 items-center gap-1 rounded-lg border border-[#99F6E4] bg-[#ECFDF5] px-2.5 text-xs font-bold text-[#0F766E] transition-colors hover:bg-[#CCFBF1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]"
+            >
+              <ClipboardList className="h-3.5 w-3.5" /> Blok Aktif
+            </button>
+          )}
           <span className="text-xs text-[#0F172A] bg-white/80 border border-[#CBD5E1] px-2 py-1 rounded-full font-medium hidden sm:block shadow-sm">
             {weeklyPlan.label}
           </span>
           <button
             onClick={() => { setShowImport(true); setImportError(''); setImportText(''); }}
+            aria-label="Impor plan lama"
+            title="Impor plan lama"
             className="flex items-center gap-1 px-2.5 py-1.5 bg-[#ECFDF5] hover:bg-[#99F6E4] border border-[#CBD5E1] rounded-lg text-[#14B8A6] text-xs font-bold transition-colors shadow-sm"
           >
-            <Plus className="w-3 h-3"/> Import
+            <Plus className="w-3 h-3"/> Plan Lama
           </button>
           <button
             onClick={handleExport}
             className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-[#FFFFFF] border border-[#CBD5E1] rounded-lg text-[#0F172A] text-xs font-bold transition-colors shadow-sm"
           >
-            <Save className="w-3 h-3"/> Export
+            <Save className="w-3 h-3"/> Ekspor
           </button>
         </div>
       </div>
@@ -403,10 +645,10 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
         <div className="rounded-3xl border border-[#CBD5E1] bg-white/85 backdrop-blur-sm overflow-hidden animate-in slide-in-from-top-2 shadow-[0_10px_30px_rgba(17,24,39,0.06)]">
           <div className="flex items-center justify-between px-4 py-3 bg-[#FFFFFF] border-b border-[#DCE3EA]">
             <div>
-              <p className="font-black text-[#0F172A] text-sm">Import Plan JSON</p>
-              <p className="text-[10px] text-[#64748B] mt-0.5">Paste JSON jadwal dari coach di bawah ini</p>
+              <p className="font-black text-[#0F172A] text-sm">Impor Plan Lama</p>
+              <p className="mt-1 text-xs text-[#64748B]">Hanya menerima format dengan field weekStart dan days. Blok Latihan diimpor melalui menu Input.</p>
             </div>
-            <button onClick={() => setShowImport(false)} className="p-1.5 text-[#64748B] hover:text-[#e11d48] rounded-lg transition-colors"><X className="w-4 h-4"/></button>
+            <button onClick={() => setShowImport(false)} aria-label="Tutup impor program" className="p-1.5 text-[#64748B] hover:text-[#e11d48] rounded-lg transition-colors"><X className="w-4 h-4"/></button>
           </div>
           <div className="p-4 space-y-3">
             <textarea
@@ -426,9 +668,9 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
               <button
                 onClick={handleImport}
                 disabled={!importText.trim()}
-                className="flex-1 py-2 bg-[#0F172A] text-[#0F172A] font-black text-sm rounded-3xl disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                className="flex-1 rounded-xl bg-[#0F172A] py-2 text-sm font-black text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Load Plan
+                Muat Program
               </button>
             </div>
           </div>
@@ -565,7 +807,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user }) {
                 </span>
               )}
               <button onClick={() => { setEditingDay(null); setEditDraft(null); }} className="p-1.5 text-[#64748B] hover:text-[#e11d48] rounded-lg transition-colors"><X className="w-4 h-4"/></button>
-              <button onClick={saveDraft} disabled={saveStatus === 'saving'} className="px-3 py-1.5 bg-[#0F172A] text-[#0F172A] text-xs font-black rounded-xl flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"><Save className="w-3 h-3"/> Simpan</button>
+              <button onClick={saveDraft} disabled={saveStatus === 'saving'} className="flex items-center gap-1 rounded-xl bg-[#0F172A] px-3 py-1.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"><Save className="w-3 h-3"/> Simpan</button>
             </div>
           </div>
 
@@ -842,12 +1084,18 @@ export default function App() {
 
   // --- 7. EDIT DATA ---
   const handleEdit = async (id, updatedData) => {
-    if (!user) return;
     try {
+      if (!user) throw new Error('User is not authenticated');
       const docRef = doc(db, 'users', user.uid, 'workouts', id.toString());
       await setDoc(docRef, updatedData, { merge: true });
+      setWorkouts(current => current.map(workout =>
+        String(workout.id) === String(id)
+          ? { ...workout, ...updatedData, id: workout.id }
+          : workout
+      ));
     } catch (err) {
       console.error("Gagal update:", err);
+      throw err;
     }
   };
 
@@ -855,10 +1103,10 @@ export default function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F5F7F9] flex flex-col items-center justify-center space-y-4">
-        <div className="p-4 rounded-full bg-gradient-to-br from-[#99F6E4]/20 to-[#5a90b8]/20 border border-[#CBD5E1]">
-          <BrainCircuit className="w-12 h-12 text-[#14B8A6] animate-pulse" />
+        <div className="rounded-2xl border border-[#99F6E4] bg-[#ECFDF5] p-4">
+          <Flame className="h-10 w-10 animate-pulse text-[#0F766E]" />
         </div>
-        <p className="text-sm font-bold tracking-widest uppercase bg-gradient-to-r from-[#99F6E4] to-[#5a90b8] bg-clip-text text-transparent">Memuat HybridTrack...</p>
+        <p className="text-sm font-bold text-[#475569]">Memuat HybridTrack...</p>
       </div>
     );
   }
@@ -866,24 +1114,18 @@ export default function App() {
   // --- TAMPILAN HALAMAN LOGIN ---
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#F5F7F9] flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-        {/* Decorative bg blobs */}
-        <div className="absolute top-1/4 -left-20 w-64 h-64 bg-[#FFFFFF] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 -right-20 w-64 h-64 bg-[#FFFFFF] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#14B8A6]/5 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="p-5 rounded-3xl bg-gradient-to-br from-[#99F6E4]/20 to-[#14B8A6]/20 border border-[#CBD5E1] mb-6 shadow-2xl shadow-[#99F6E4]/10">
-            <Flame className="w-14 h-14 text-[#14B8A6] animate-bounce" />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#F5F7F9] p-6 text-center">
+        <div className="flex flex-col items-center">
+          <div className="mb-5 rounded-2xl border border-[#99F6E4] bg-[#ECFDF5] p-4">
+            <Flame className="h-12 w-12 text-[#0F766E]" />
           </div>
-          <h1 className="text-4xl font-black mb-2">
-            <span className="bg-gradient-to-r from-[#99F6E4] to-[#14B8A6] bg-clip-text text-transparent">Hybrid</span>
-            <span className="bg-gradient-to-r from-[#5a90b8] to-[#64748B] bg-clip-text text-transparent">Track</span>
+          <h1 className="mb-2 text-4xl font-black text-[#0F172A]">
+            <span className="text-[#0F766E]">Hybrid</span>Track
           </h1>
-          <p className="text-[#0F172A] mb-10 max-w-sm text-sm leading-relaxed">Pantau latihan Lari dan Gym kamu, tersimpan otomatis di awan.</p>
+          <p className="mb-8 max-w-sm text-sm leading-relaxed text-[#475569]">Catat latihan lari dan gym, pantau progres, dan siapkan ulasan mingguan.</p>
           <button 
             onClick={loginWithGoogle}
-            className="bg-white text-[#0a1929] font-bold px-8 py-4 rounded-full flex items-center shadow-2xl shadow-[#99F6E4]/20 active:scale-95 transition-transform hover:shadow-[#99F6E4]/30"
+            className="flex items-center rounded-xl border border-[#CBD5E1] bg-white px-6 py-3.5 font-bold text-[#0F172A] shadow-sm transition-colors hover:border-[#94A3B8] hover:bg-[#F8FAFC] active:bg-[#F1F5F9]"
           >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 mr-3" />
             Login dengan Google
@@ -911,7 +1153,12 @@ export default function App() {
           </div>
           <div className="flex items-center space-x-2">
 
-            <button onClick={handleLogout} className="p-1.5 text-[#0F172A] hover:text-[#0F172A] bg-[#8B5CF6] rounded-lg">
+            <button
+              onClick={handleLogout}
+              aria-label="Keluar dari akun"
+              title="Keluar"
+              className="rounded-lg border border-[#CBD5E1] bg-white p-2 text-[#475569] transition-colors hover:border-[#94A3B8] hover:text-[#0F172A]"
+            >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -924,27 +1171,36 @@ export default function App() {
       {showToast && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] text-[#05131c] px-5 py-3 rounded-full flex items-center shadow-2xl shadow-[rgba(17,24,39,0.08)] animate-in slide-in-from-top-5 w-11/12 max-w-sm justify-center">
           <CheckCircle2 className="w-5 h-5 mr-2 flex-shrink-0" />
-          <span className="font-bold text-sm truncate">Data tersimpan di Cloud!</span>
+          <span className="font-bold text-sm truncate">Data berhasil disimpan.</span>
         </div>
       )}
 
       {/* MAIN CONTENT */}
       <main className="max-w-md md:max-w-5xl mx-auto px-4 py-6 md:pt-14 space-y-6">
         {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={effectivePlan} activeTrainingBlock={activeTrainingBlock} />}
-        {activeTab === 'add' && <QuickInput onAdd={handleAddData} workouts={workouts} weeklyPlan={weeklyPlan} />}
-        {activeTab === 'history' && <History workouts={workouts} weeklyPlan={weeklyPlan} user={user} setShowToast={setShowToast} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
-        {activeTab === 'plan' && <WeeklyPlanTab weeklyPlan={weeklyPlan} setWeeklyPlan={setWeeklyPlan} workouts={workouts} user={user} />}
-        {activeTab === 'coach' && <CoachWorkspace workouts={workouts} weeklyPlan={weeklyPlan} activeTrainingBlock={activeTrainingBlock} user={user} />}
+        {activeTab === 'add' && (
+          <QuickInput
+            onAdd={handleAddData}
+            workouts={workouts}
+            weeklyPlan={weeklyPlan}
+            user={user}
+            onTrainingBlockImported={() => {
+              setShowToast(true);
+              setTimeout(() => setShowToast(false), 3000);
+            }}
+          />
+        )}
+        {activeTab === 'history' && <History workouts={workouts} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
+        {activeTab === 'plan' && <WeeklyPlanTab weeklyPlan={weeklyPlan} setWeeklyPlan={setWeeklyPlan} workouts={workouts} user={user} activeTrainingBlock={activeTrainingBlock} />}
       </main>
 
       {/* NAVIGATION */}
       <nav className="fixed bottom-0 w-full bg-[#F5F7F9]/98 backdrop-blur-xl border-t border-[#CBD5E1]/50 md:bottom-auto md:top-16 md:bg-[#F5F7F9]/80 md:border-b z-30 pb-safe">
         <div className="max-w-md md:max-w-5xl mx-auto flex justify-around items-center h-20 md:h-12 px-2 pb-2 md:pb-0">
           <NavButton icon={<Activity />} label="Dasbor" isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <NavButton icon={<ClipboardList />} label="Plan" isActive={activeTab === 'plan'} onClick={() => setActiveTab('plan')} />
+          <NavButton icon={<ClipboardList />} label="Program" isActive={activeTab === 'plan'} onClick={() => setActiveTab('plan')} />
           <NavButton icon={<PlusCircle />} label="Input" isActive={activeTab === 'add'} onClick={() => setActiveTab('add')} highlight />
           <NavButton icon={<List />} label="Riwayat" isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-          <NavButton icon={<BrainCircuit />} label="Coach" isActive={activeTab === 'coach'} onClick={() => setActiveTab('coach')} />
         </div>
       </nav>
 
@@ -956,7 +1212,7 @@ export default function App() {
         <EditModal
           workout={editModal}
           onClose={() => setEditModal(null)}
-          onSave={async (updatedData) => { await handleEdit(editModal.id, updatedData); setEditModal(null); }}
+          onSave={(updatedData) => handleEdit(editModal.id, updatedData)}
         />
       )}
     </div>
@@ -999,19 +1255,8 @@ function analyzeAlerts(workouts) {
 
 const parseLocalDate = (dateStr) => dateStr ? new Date(`${dateStr}T00:00:00`) : null;
 
-function getCurrentWeekRange(referenceDate = new Date()) {
-  const start = new Date(referenceDate);
-  start.setHours(0, 0, 0, 0);
-  const day = start.getDay();
-  start.setDate(start.getDate() - (day === 0 ? 6 : day - 1));
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
-}
-
 function getDashboardSummary(workouts, weeklyPlan) {
-  const { start, end } = getCurrentWeekRange();
+  const { start, end } = dashboardUtils.getCurrentWeekRange();
   const thisWeek = workouts.filter(w => {
     const date = parseLocalDate(w.date);
     return date && date >= start && date <= end;
@@ -1158,48 +1403,90 @@ function MiniTrend({ points, color = '#14B8A6', invert = false }) {
 
 function DashboardHero({ summary }) {
   return (
-    <section className="relative overflow-hidden rounded-[30px] bg-[#0F172A] p-5 text-white shadow-[0_22px_55px_rgba(15,23,42,0.24)] md:p-7">
-      <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#14B8A6]/25 blur-3xl" />
-      <div className="absolute -bottom-20 left-1/3 h-44 w-44 rounded-full bg-[#7C3AED]/20 blur-3xl" />
-      <div className="relative">
-        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#5EEAD4]">Performance this week</p>
-        <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">Your training, at a glance.</h2>
-        <p className="mt-1 text-xs text-slate-300">Consistency first. Progress follows.</p>
-        <div className="mt-5 grid grid-cols-3 gap-2.5 md:gap-4">
-          <HeroMetric icon={<Activity />} value={summary.runDistance.toFixed(1)} label="Run km" color="text-[#2DD4BF]" />
-          <HeroMetric icon={<Dumbbell />} value={summary.gymSessions} label="Gym sessions" color="text-[#A78BFA]" />
-          <HeroMetric icon={<Target />} value={summary.consistency === null ? '—' : `${summary.consistency}%`}
-            label="Consistency" color="text-[#FBBF24]" achievement />
-        </div>
-        <p className="mt-3 text-[10px] text-slate-400">
-          {summary.consistency === null
-            ? 'Consistency appears when the active plan covers this week.'
-            : `${summary.completedPlanned} of ${summary.plannedCount} planned workouts completed.`}
-        </p>
+    <section className="rounded-2xl border border-[#DCE3EA] bg-white p-4 md:p-5">
+      <p className="text-xs font-bold text-[#0F766E]">Ringkasan minggu ini</p>
+      <h2 className="mt-1 text-xl font-black text-[#0F172A] md:text-2xl">Progres latihanmu</h2>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <HeroMetric icon={<Activity />} value={summary.runDistance.toFixed(1)} label="Jarak lari (km)" color="text-[#0284C7]" />
+        <HeroMetric icon={<Dumbbell />} value={summary.gymSessions} label="Sesi gym" color="text-[#7C3AED]" />
       </div>
     </section>
   );
 }
 
-function HeroMetric({ icon, value, label, color, achievement = false }) {
+function HeroMetric({ icon, value, label, color }) {
   return (
-    <div className={`rounded-2xl border p-3 md:p-4 ${achievement ? 'border-[#F59E0B]/30 bg-[#F59E0B]/10' : 'border-white/10 bg-white/[0.07]'}`}>
+    <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 md:p-4">
       {React.cloneElement(icon, { className: `mb-3 h-4 w-4 ${color}` })}
-      <p className={`text-xl font-black md:text-3xl ${achievement ? color : ''}`}>{value}</p>
-      <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-slate-300">{label}</p>
+      <p className="text-2xl font-black text-[#0F172A] md:text-3xl">{value}</p>
+      <p className="mt-1 text-xs font-semibold text-[#64748B]">{label}</p>
     </div>
+  );
+}
+
+function formatTrackerWeek(start, end) {
+  const startLabel = start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  const endLabel = end.toLocaleDateString('id-ID', {
+    month: start.getMonth() === end.getMonth() ? undefined : 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  return `${startLabel} - ${endLabel}`;
+}
+
+function WeeklyTrainingTracker({ tracker }) {
+  const accents = {
+    push: { bar: 'bg-[#8B5CF6]', text: 'text-[#7C3AED]' },
+    pull: { bar: 'bg-[#14B8A6]', text: 'text-[#0F766E]' },
+    legs: { bar: 'bg-[#F59E0B]', text: 'text-[#B45309]' },
+    run: { bar: 'bg-[#0EA5E9]', text: 'text-[#0369A1]' },
+  };
+
+  return (
+    <section className="rounded-2xl border border-[#DCE3EA] bg-white px-4 py-3 shadow-[0_10px_28px_rgba(51,65,85,0.07)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-black text-[#0F172A]">Target latihan mingguan</p>
+          <p className="mt-0.5 text-xs font-medium text-[#64748B]">Sen–Min · {formatTrackerWeek(tracker.start, tracker.end)}</p>
+        </div>
+        <div className="rounded-lg bg-[#F5F3FF] p-2 text-[#7C3AED]">
+          <Target className="h-4 w-4" />
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+        {tracker.items.map(item => {
+          const accent = accents[item.key];
+          const percent = (item.completed / item.target) * 100;
+          return (
+            <div key={item.key}>
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className="font-bold text-[#334155]">{item.label}</span>
+                <span className={`font-black ${accent.text}`}>{item.completed}/{item.target}</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[#E2E8F0]">
+                <div className={`h-full rounded-full transition-all duration-500 ${accent.bar}`} style={{ width: `${percent}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-3 border-t border-[#E2E8F0] pt-2 text-xs font-bold text-[#0F172A]">
+        Total <span className="text-[#0F766E]">{tracker.completed}/{tracker.target}</span> target tercapai
+      </p>
+    </section>
   );
 }
 
 function StrengthProgressCard({ progress }) {
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-[#7C3AED]/25 bg-white p-5 shadow-[0_14px_35px_rgba(51,65,85,0.08)]">
-      <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-[#7C3AED]/10 blur-2xl" />
-      <div className="relative">
+    <section className="rounded-2xl border border-[#DDD6FE] bg-white p-5">
+      <div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7C3AED]">Strength progress</p>
-            <h3 className="mt-1 text-lg font-black text-[#0F172A]">Best Progress Exercise</h3>
+            <p className="text-xs font-bold text-[#7C3AED]">Progres kekuatan</p>
+            <h3 className="mt-1 text-lg font-black text-[#0F172A]">Gerakan dengan progres terbaik</h3>
           </div>
           <div className="rounded-2xl bg-[#7C3AED] p-2.5 text-white"><Dumbbell className="h-5 w-5" /></div>
         </div>
@@ -1207,8 +1494,8 @@ function StrengthProgressCard({ progress }) {
           <>
             <p className="mt-5 min-h-[48px] text-xl font-black leading-tight text-[#334155]">{progress.exercise}</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <ProgressMetric label="Best Weight" value={`${progress.currentBest}kg`} />
-              <ProgressMetric label="90 Day Progress"
+              <ProgressMetric label="Beban terbaik" value={`${progress.currentBest}kg`} />
+              <ProgressMetric label="Progres 90 hari"
                 value={progress.improvement === null ? '—' : `${progress.improvement >= 0 ? '+' : ''}${progress.improvement}kg`}
                 accent />
             </div>
@@ -1219,7 +1506,7 @@ function StrengthProgressCard({ progress }) {
             )}
           </>
         ) : (
-          <p className="mt-5 rounded-2xl bg-[#F8FAFC] p-4 text-sm text-[#64748B]">Log a gym exercise to start tracking strength progress.</p>
+          <p className="mt-5 rounded-xl bg-[#F8FAFC] p-4 text-sm text-[#64748B]">Catat latihan gym untuk mulai melihat progres kekuatan.</p>
         )}
       </div>
     </section>
@@ -1229,7 +1516,7 @@ function StrengthProgressCard({ progress }) {
 function ProgressMetric({ label, value, accent = false }) {
   return (
     <div className={`rounded-2xl p-3 ${accent ? 'bg-[#7C3AED] text-white' : 'bg-[#F5F3FF]'}`}>
-      <p className={`text-[9px] font-bold uppercase tracking-wider ${accent ? 'text-violet-100' : 'text-[#64748B]'}`}>{label}</p>
+      <p className={`text-xs font-semibold ${accent ? 'text-violet-100' : 'text-[#64748B]'}`}>{label}</p>
       <p className="mt-1 text-xl font-black">{value}</p>
     </div>
   );
@@ -1237,27 +1524,26 @@ function ProgressMetric({ label, value, accent = false }) {
 
 function RunningProgressCard({ progress }) {
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-[#14B8A6]/30 bg-white p-5 shadow-[0_14px_35px_rgba(51,65,85,0.08)]">
-      <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-[#14B8A6]/10 blur-2xl" />
-      <div className="relative">
+    <section className="rounded-2xl border border-[#BAE6FD] bg-white p-5">
+      <div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0F766E]">Running progress</p>
-            <h3 className="mt-1 text-lg font-black text-[#0F172A]">Your running markers</h3>
+            <p className="text-xs font-bold text-[#0369A1]">Progres lari</p>
+            <h3 className="mt-1 text-lg font-black text-[#0F172A]">Penanda performa larimu</h3>
           </div>
           <div className="rounded-2xl bg-[#14B8A6] p-2.5 text-white"><TrendingUp className="h-5 w-5" /></div>
         </div>
         <div className="mt-5 grid grid-cols-3 gap-2">
           <RunMetric label="5K PB" value={formatDashboardTime(progress.fiveKPB)} />
-          <RunMetric label="30D Pace" value={progress.averagePace ? `${formatDashboardTime(progress.averagePace)}/km` : '—'} accent />
-          <RunMetric label="Longest" value={progress.longestRun > 0 ? `${progress.longestRun.toFixed(1)}km` : '—'} />
+          <RunMetric label="Pace 30 hari" value={progress.averagePace ? `${formatDashboardTime(progress.averagePace)}/km` : '—'} accent />
+          <RunMetric label="Terjauh" value={progress.longestRun > 0 ? `${progress.longestRun.toFixed(1)}km` : '—'} />
         </div>
         {progress.points.length >= 2 && (
           <div className="mt-3 rounded-2xl border border-[#CCFBF1] bg-[#F8FFFD] px-3 pt-2">
             <MiniTrend points={progress.points} color="#14B8A6" invert />
           </div>
         )}
-        <p className="mt-3 text-[10px] text-[#64748B]">5K PB uses runs between 4.9–5.1 km. Pace is distance-weighted over 30 days.</p>
+        <p className="mt-3 text-xs text-[#64748B]">PB 5K memakai lari 4,9–5,1 km. Pace 30 hari dihitung berdasarkan jarak.</p>
       </div>
     </section>
   );
@@ -1266,8 +1552,121 @@ function RunningProgressCard({ progress }) {
 function RunMetric({ label, value, accent = false }) {
   return (
     <div className={`rounded-2xl p-3 ${accent ? 'bg-[#CCFBF1]' : 'bg-[#F0FDFA]'}`}>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-[#64748B]">{label}</p>
+      <p className="text-xs font-semibold text-[#64748B]">{label}</p>
       <p className={`mt-2 text-lg font-black ${accent ? 'text-[#0F766E]' : 'text-[#0F172A]'}`}>{value}</p>
+    </div>
+  );
+}
+
+function NextSessionCard({ workouts, weeklyPlan, activeTrainingBlock }) {
+  let nextPlan;
+  let heading = 'Rencana Hari Ini';
+
+  if (activeTrainingBlock?.trainingBlock?.sessions) {
+    const blockPending = getNextSessionFromBlock({
+      trainingBlock: activeTrainingBlock.trainingBlock,
+      completedWorkouts: workouts,
+    });
+    if (blockPending) {
+      const session = blockPending.session;
+      const isStrength = session.type === 'Strength';
+      const isRun = session.type === 'Run';
+      const prescription = session.prescription || {};
+      heading = 'Sesi Berikutnya';
+      nextPlan = {
+        type: isStrength ? 'Gym' : isRun ? 'Run' : session.type,
+        sessionName: session.title || (isStrength ? 'Strength Session' : isRun ? 'Run Session' : 'Session'),
+        exercises: isStrength ? (prescription.exercises || []).map(exercise => {
+          const isNumericSets = typeof exercise.sets === 'number';
+          const sets = isNumericSets
+            ? [{ set: 1, weight: exercise.weight, reps: exercise.reps }]
+            : (exercise.sets || []).map((set, index) => ({
+                set: set.set || set.order || index + 1,
+                weight: set.weight,
+                reps: set.reps,
+              }));
+          return { name: exercise.name || exercise.exercise || '', sets };
+        }) : null,
+        runTarget: isRun ? {
+          distance: prescription.distance,
+          pace: prescription.pace,
+          rpe: prescription.rpe,
+          effort: prescription.effort || prescription.intensity,
+        } : null,
+        notes: session.coachNotes || '',
+      };
+    }
+  }
+
+  if (!nextPlan) {
+    nextPlan = getPlannedSession(weeklyPlan, new Date());
+  }
+
+  if (!nextPlan || nextPlan.type === 'Rest') return null;
+
+  const colors = getSessionColor(nextPlan.sessionName);
+  return (
+    <div className={`rounded-3xl border ${colors.border} bg-white overflow-hidden`}>
+      <div className={`flex items-center justify-between px-4 py-3 ${colors.bg}`}>
+        <div>
+          <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider mb-0.5">{heading}</p>
+          <p className={`font-black text-base ${colors.text}`}>{nextPlan.sessionName}</p>
+        </div>
+        <div className="text-right">
+          {nextPlan.type === 'Gym' && nextPlan.exercises && (
+            <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${colors.badge}`}>{nextPlan.exercises.length} gerakan</span>
+          )}
+          {nextPlan.type === 'Run' && nextPlan.runTarget && (
+            <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${colors.badge}`}>{nextPlan.runTarget.distance}km</span>
+          )}
+        </div>
+      </div>
+      {nextPlan.type === 'Gym' && nextPlan.exercises && (
+        <div className="divide-y divide-[#DCE3EA]">
+          {nextPlan.exercises.map((exercise, exerciseIndex) => (
+            <div key={exerciseIndex} className="px-4 py-2.5 flex items-center gap-3">
+              <span className={`text-[9px] font-black w-5 h-5 flex items-center justify-center rounded ${colors.badge} flex-shrink-0`}>{exerciseIndex + 1}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-[#0F172A] truncate mb-1">{exercise.name}</p>
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                  {exercise.sets.map((set, setIndex) => (
+                    <span key={setIndex} className="text-[9px] bg-[#8B5CF6]/70 text-[#0F172A] px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                      S{set.set}: {set.weight}kg×{set.reps}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {nextPlan.type === 'Run' && nextPlan.runTarget && (
+        <div className="px-4 py-3 flex items-center gap-3 overflow-x-auto">
+          <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
+            <span className="text-[8px] text-[#64748B] uppercase font-bold">Jarak</span>
+            <span className="text-base font-black text-[#0F172A]">{nextPlan.runTarget.distance}km</span>
+          </div>
+          {nextPlan.runTarget.pace && (
+            <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
+              <span className="text-[8px] text-[#64748B] uppercase font-bold">Pace</span>
+              <span className="text-sm font-black text-[#14B8A6]">{nextPlan.runTarget.pace}/km</span>
+            </div>
+          )}
+          <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
+            <span className="text-[8px] text-[#64748B] uppercase font-bold">RPE</span>
+            <span className="text-sm font-black text-[#0F172A]">{nextPlan.runTarget.rpe || '-'}</span>
+          </div>
+          <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
+            <span className="text-[8px] text-[#64748B] uppercase font-bold">Effort</span>
+            <span className="text-xs font-black text-[#14B8A6] capitalize">{nextPlan.runTarget.effort || '-'}</span>
+          </div>
+        </div>
+      )}
+      {nextPlan.notes && (
+        <div className="px-4 pb-3">
+          <p className="text-[10px] text-[#64748B] italic">{nextPlan.notes}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1276,14 +1675,9 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
   const summary = getDashboardSummary(workouts, weeklyPlan);
   const strengthProgress = useMemo(() => getExerciseProgress(workouts), [workouts]);
   const runningProgress = useMemo(() => getRunningProgress(workouts), [workouts]);
+  const weeklyTracker = dashboardUtils.getWeeklyTrainingTracker(workouts);
 
   // ─── MVP Dashboard Computations ──────────────────────────────────────────
-  const streak = useMemo(() => {
-    // Dynamic import handled via top-level import
-    const { computeStreak } = dashboardUtils;
-    return computeStreak(workouts);
-  }, [workouts]);
-
   const weeklyVolume = useMemo(() => {
     const { getWeeklyVolume } = dashboardUtils;
     return getWeeklyVolume(workouts, 12);
@@ -1293,11 +1687,6 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
     const { getPaceTrend } = dashboardUtils;
     return getPaceTrend(workouts, 20);
   }, [workouts]);
-
-  const completion = useMemo(() => {
-    const { getCompletionRate } = dashboardUtils;
-    return getCompletionRate(workouts, weeklyPlan);
-  }, [workouts, weeklyPlan]);
 
   const gymPRs = useMemo(() => {
     const { getGymPRs } = dashboardUtils;
@@ -1309,83 +1698,44 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
     return getRunningPBs(workouts);
   }, [workouts]);
 
-  // ─── Planning Engine + Coach Insight ────────────────────────────────────
-  const nextSession = useMemo(() => {
-    // Prefer Training Block (session-order-based) when available
-    if (activeTrainingBlock?.trainingBlock?.sessions) {
-      return getNextSessionFromBlock({
-        trainingBlock: activeTrainingBlock.trainingBlock,
-        completedWorkouts: workouts,
-      });
-    }
-    // Fallback to WeeklyPlan (weekday-based) for legacy compatibility
-    return getNextSession({ weeklyPlan, completedWorkouts: workouts, currentDate: new Date() });
-  }, [activeTrainingBlock, weeklyPlan, workouts]);
-
-  const coachInsight = useMemo(() => {
-    return generateCoachInsight({
-      nextSession,
-      weeklyRunDistance: summary.runDistance,
-      weeklyGymSessions: summary.gymSessions,
-      currentWeight: null,
-      streak: streak.current,
-    });
-  }, [nextSession, summary.runDistance, summary.gymSessions, streak.current]);
-
-  // ─── Dynamic Imports for Dashboard Components ───────────────────────────
-  const StreakDisplay = React.lazy(() => import('./components/dashboard/StreakDisplay'));
-  const VolumeTrendChart = React.lazy(() => import('./components/dashboard/VolumeTrendChart'));
-  const PaceTrendChart = React.lazy(() => import('./components/dashboard/PaceTrendChart'));
-  const CompletionRate = React.lazy(() => import('./components/dashboard/CompletionRate'));
-  const PersonalRecords = React.lazy(() => import('./components/dashboard/PersonalRecords'));
-
-  const Fallback = () => <div className="animate-pulse bg-gray-100 dark:bg-gray-700 rounded-xl h-24" />;
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+
+      <NextSessionCard
+        workouts={workouts}
+        weeklyPlan={weeklyPlan}
+        activeTrainingBlock={activeTrainingBlock}
+      />
 
       {/* ── Hero Section ── */}
       <DashboardHero summary={summary} />
 
-      {/* ── Streak + Completion Rate ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <React.Suspense fallback={<Fallback />}>
-          <StreakDisplay current={streak.current} longest={streak.longest} />
-        </React.Suspense>
-        <React.Suspense fallback={<Fallback />}>
-          <CompletionRate
-            rate={completion.rate}
-            completed={completion.completed}
-            planned={completion.planned}
-            message={completion.message}
-          />
-        </React.Suspense>
-      </div>
+      <WeeklyTrainingTracker tracker={weeklyTracker} />
 
       {/* ── Volume Trends ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <React.Suspense fallback={<Fallback />}>
+        <Suspense fallback={<DashboardFallback />}>
           <VolumeTrendChart
             data={weeklyVolume.map(w => ({ label: w.week, value: w.runKm }))}
             unit="km"
-            title="Running Volume (Weekly)"
+            title="Volume lari mingguan"
             color="#14B8A6"
           />
-        </React.Suspense>
-        <React.Suspense fallback={<Fallback />}>
+        </Suspense>
+        <Suspense fallback={<DashboardFallback />}>
           <VolumeTrendChart
             data={weeklyVolume.map(w => ({ label: w.week, value: Math.round(w.gymVolume / 1000) }))}
             unit="k kg"
-            title="Gym Volume (Weekly)"
+            title="Volume gym mingguan"
             color="#8B5CF6"
           />
-        </React.Suspense>
+        </Suspense>
       </div>
 
       {/* ── Pace Trend ── */}
-      <React.Suspense fallback={<Fallback />}>
+      <Suspense fallback={<DashboardFallback />}>
         <PaceTrendChart data={paceTrend} />
-      </React.Suspense>
+      </Suspense>
 
       {/* ── Strength & Running Progress (existing cards) ── */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1394,158 +1744,9 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
       </div>
 
       {/* ── Personal Records ── */}
-      <React.Suspense fallback={<Fallback />}>
+      <Suspense fallback={<DashboardFallback />}>
         <PersonalRecords gymPRs={gymPRs} runningPBs={runningPBs} />
-      </React.Suspense>
-
-      {/* ── Today's Plan Card ── */}
-      {(() => {
-        // Determine the "today plan" from either Training Block or WeeklyPlan
-        let todayPlan;
-
-        // Prefer Training Block (session-order-based) when available
-        if (activeTrainingBlock?.trainingBlock?.sessions) {
-          const blockPending = getNextSessionFromBlock({
-            trainingBlock: activeTrainingBlock.trainingBlock,
-            completedWorkouts: workouts,
-          });
-          if (blockPending) {
-            const s = blockPending.session;
-            const isStrength = s.type === 'Strength';
-            const isRun = s.type === 'Run';
-            const rx = s.prescription || {};
-            todayPlan = {
-              type: isStrength ? 'Gym' : isRun ? 'Run' : s.type,
-              sessionName: s.title || (isStrength ? 'Strength Session' : isRun ? 'Run Session' : 'Session'),
-              exercises: isStrength ? (rx.exercises || []).map(ex => {
-                // Support both schemas:
-                //   Legacy: ex.sets = [{weight: 25, reps: 10}, ...]
-                //   AI TB:  ex.sets = 3 (number), ex.reps = "8-12", ex.weight = 25
-                const isAiSchema = typeof ex.sets === 'number';
-                const sets = isAiSchema
-                  ? [{ set: 1, weight: ex.weight, reps: ex.reps }]
-                  : (ex.sets || []).map((set, idx) => ({
-                      set: set.set || set.order || idx + 1,
-                      weight: set.weight,
-                      reps: set.reps,
-                    }));
-                return { name: ex.name || ex.exercise || '', sets };
-              }) : null,
-              runTarget: isRun ? {
-                distance: rx.distance,
-                pace: rx.pace,
-                rpe: rx.rpe,
-                effort: rx.effort || rx.intensity,
-              } : null,
-              notes: s.coachNotes || '',
-            };
-          }
-        }
-
-        // Fallback: WeeklyPlan (weekday-based) for legacy compatibility
-        if (!todayPlan) {
-          todayPlan = getPlannedSession(weeklyPlan, new Date());
-        }
-
-        if (!todayPlan || todayPlan.type === 'Rest') return null;
-        const sc = getSessionColor(todayPlan.sessionName);
-        return (
-          <div className={`rounded-3xl border ${sc.border} bg-white overflow-hidden`}>
-            <div className={`flex items-center justify-between px-4 py-3 ${sc.bg}`}>
-              <div>
-                <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider mb-0.5">Rencana Hari Ini</p>
-                <p className={`font-black text-base ${sc.text}`}>{todayPlan.sessionName}</p>
-              </div>
-              <div className="text-right">
-                {todayPlan.type === 'Gym' && todayPlan.exercises && (
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${sc.badge}`}>{todayPlan.exercises.length} gerakan</span>
-                )}
-                {todayPlan.type === 'Run' && todayPlan.runTarget && (
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${sc.badge}`}>{todayPlan.runTarget.distance}km</span>
-                )}
-              </div>
-            </div>
-            {todayPlan.type === 'Gym' && todayPlan.exercises && (
-              <div className="divide-y divide-[#DCE3EA]">
-                {todayPlan.exercises.map((ex, exIdx) => (
-                  <div key={exIdx} className="px-4 py-2.5 flex items-center gap-3">
-                    <span className={`text-[9px] font-black w-5 h-5 flex items-center justify-center rounded ${sc.badge} flex-shrink-0`}>{exIdx+1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#0F172A] truncate mb-1">{ex.name}</p>
-                      <div className="flex gap-1.5">
-                        {ex.sets.map((s, sIdx) => (
-                          <span key={sIdx} className="text-[9px] bg-[#8B5CF6]/70 text-[#0F172A] px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
-                            S{s.set}: {s.weight}kg×{s.reps}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {todayPlan.type === 'Run' && todayPlan.runTarget && (
-              <div className="px-4 py-3 flex items-center gap-3">
-                <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
-                  <span className="text-[8px] text-[#64748B] uppercase font-bold">Jarak</span>
-                  <span className="text-base font-black text-[#0F172A]">{todayPlan.runTarget.distance}km</span>
-                </div>
-                {todayPlan.runTarget.pace && (
-                  <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
-                    <span className="text-[8px] text-[#64748B] uppercase font-bold">Pace</span>
-                    <span className="text-sm font-black text-[#14B8A6]">{todayPlan.runTarget.pace}/km</span>
-                  </div>
-                )}
-                <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
-                  <span className="text-[8px] text-[#64748B] uppercase font-bold">RPE</span>
-                  <span className="text-sm font-black text-[#0F172A]">{todayPlan.runTarget.rpe}</span>
-                </div>
-                <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
-                  <span className="text-[8px] text-[#64748B] uppercase font-bold">Effort</span>
-                  <span className="text-xs font-black text-[#14B8A6] capitalize">{todayPlan.runTarget.effort}</span>
-                </div>
-              </div>
-            )}
-            {todayPlan.notes && (
-              <div className="px-4 pb-3">
-                <p className="text-[10px] text-[#64748B] italic">{todayPlan.notes}</p>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* ── Coach Insight ── */}
-      {coachInsight && (
-        <div className="rounded-3xl border border-[#CBD5E1]/50 bg-white overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
-            <div className="flex items-center gap-2">
-              <BrainCircuit className="w-4 h-4 text-[#14B8A6]" />
-              <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">Coach Insight</p>
-            </div>
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-              coachInsight.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
-              coachInsight.priority === 'low' ? 'bg-[#F1F5F9] text-[#64748B]' :
-              'bg-[#ECFDF5] text-[#065F46]'
-            }`}>
-              {coachInsight.priority === 'high' ? 'Important' : coachInsight.priority === 'low' ? 'Note' : 'Tip'}
-            </span>
-          </div>
-          <div className="px-4 py-3">
-            <p className="text-sm font-bold text-[#0F172A] mb-1">{coachInsight.title}</p>
-            <p className="text-xs text-[#64748B] leading-relaxed">{coachInsight.message}</p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Weekly Training Block ── */}
-      {activeTrainingBlock?.trainingBlock?.sessions && (
-        <WeeklyTrainingBlock
-          sessions={activeTrainingBlock.trainingBlock.sessions}
-          name={activeTrainingBlock.trainingBlock.name}
-          goal={activeTrainingBlock.trainingBlock.goal}
-        />
-      )}
+      </Suspense>
 
       {/* ── Empty State ── */}
       {workouts.length === 0 && (
@@ -1558,227 +1759,25 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
 
 }
 
-// ─── Weekly Training Block Viewer ──────────────────────────────────────────
-function WeeklyTrainingBlock({ sessions, name, goal }) {
-  const [expandedIndex, setExpandedIndex] = useState(null);
-
-  const toggleExpand = (index) => {
-    setExpandedIndex(prev => prev === index ? null : index);
-  };
-
-  // ── Progress computation (non-Rest sessions only) ──
-
-  const nonRestSessions = sessions.filter(s => s.type !== 'Rest');
-  const completedCount = nonRestSessions.filter(s => s.status === 'completed').length;
-  const totalCount = nonRestSessions.length;
-  const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  const statusIcon = (session) => {
-    if (session.type === 'Rest') {
-      return <span className="text-[#94A3B8] text-lg leading-none">☁</span>;
-    }
-    if (session.status === 'completed') {
-      return <CheckCircle2 className="w-5 h-5 text-[#14B8A6] flex-shrink-0" />;
-    }
-    return <span className="w-5 h-5 inline-flex items-center justify-center border-2 border-[#CBD5E1] rounded-full text-[#CBD5E1] text-xs font-bold flex-shrink-0" />;
-  };
-
-  const typeBadge = (session) => {
-    if (session.type === 'Strength') {
-      return <span className="text-[9px] font-bold text-[#8B5CF6] bg-[#F5F3FF] px-2 py-0.5 rounded-full">Strength</span>;
-    }
-    if (session.type === 'Run') {
-      const rx = session.prescription || {};
-      const dist = rx.distance ? ` • ${rx.distance} km` : '';
-      return <span className="text-[9px] font-bold text-[#14B8A6] bg-[#F0FDFA] px-2 py-0.5 rounded-full">Run{dist}</span>;
-    }
-    if (session.type === 'Rest') {
-      return <span className="text-[9px] font-bold text-[#64748B] bg-[#F1F5F9] px-2 py-0.5 rounded-full">Rest</span>;
-    }
-    return null;
-  };
-
-  // ── Format a single exercise line for Strength sessions ──
-  const formatExercise = (ex) => {
-    if (typeof ex.sets === 'number') {
-      // AI schema: { sets: 3, reps: "10-12", weight: 25 }
-      const sets = ex.sets;
-      const reps = ex.reps || '—';
-      const weight = ex.weight;
-      if (weight == null) return `${sets} × ${reps}`;
-      return `${sets} × ${reps} @ ${weight} kg`;
-    }
-    // Legacy schema: { sets: [{ weight: 25, reps: 10 }, ...] }
-    const setArr = ex.sets || [];
-    if (setArr.length === 0) return '—';
-    // Show first set as summary
-    const first = setArr[0];
-    const w = first.weight;
-    const r = first.reps;
-    if (w == null) return `${setArr.length} × ${r || '—'}`;
-    return `${setArr.length} × ${r || '—'} @ ${w} kg`;
-  };
-
-  return (
-    <section className="rounded-[28px] border border-[#DCE3EA] bg-white overflow-hidden shadow-[0_14px_35px_rgba(51,65,85,0.08)]">
-      {/* ── Header: Name + Goal ── */}
-      <div className="px-5 py-4 bg-gradient-to-r from-[#F8FAFC] to-white border-b border-[#DCE3EA]">
-        <div className="flex items-center gap-2 mb-1">
-          <ClipboardList className="w-5 h-5 text-[#14B8A6] flex-shrink-0" />
-          <h2 className="text-base font-black text-[#0F172A]">{name || 'Weekly Training Block'}</h2>
-        </div>
-        {goal && (
-          <p className="text-[11px] text-[#64748B] ml-7">{goal}</p>
-        )}
-      </div>
-
-      {/* ── Weekly Progress ── */}
-      <div className="px-5 py-3 bg-[#FAFBFC] border-b border-[#DCE3EA]">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Weekly Progress</p>
-          <span className="text-[10px] font-bold text-[#0F172A]">{completedCount} / {totalCount} sessions completed</span>
-        </div>
-        {/* Progress bar */}
-        <div className="w-full h-2 bg-[#E2E8F0] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] rounded-full transition-all duration-500"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
-        <p className="text-[9px] font-bold text-[#14B8A6] mt-1 text-right">{progressPct}%</p>
-      </div>
-
-      {/* ── Session list ── */}
-      <div className="divide-y divide-[#DCE3EA]">
-        {sessions.map((session, index) => {
-          const isExpanded = expandedIndex === index;
-          const isRest = session.type === 'Rest';
-          const isStrength = session.type === 'Strength';
-          const isRun = session.type === 'Run';
-          const rx = session.prescription || {};
-
-          return (
-            <div key={session.id || index}>
-              {/* Session row */}
-              <button
-                onClick={() => toggleExpand(index)}
-                className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[#F8FAFC] transition-colors text-left"
-              >
-                {/* Status icon */}
-                {statusIcon(session)}
-
-                {/* Title + type */}
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-bold truncate ${isRest ? 'text-[#64748B]' : 'text-[#0F172A]'}`}>
-                    {session.title || session.type || 'Session'}
-                  </p>
-                  <div className="mt-0.5">
-                    {typeBadge(session)}
-                  </div>
-                </div>
-
-                {/* Expand indicator */}
-                {!isRest && (
-                  <ChevronDown className={`w-4 h-4 text-[#94A3B8] flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                )}
-              </button>
-
-              {/* ── Expanded detail: Strength ── */}
-              {isExpanded && isStrength && (
-                <div className="px-5 pb-4 pt-2 bg-[#FAFBFC] border-t border-[#DCE3EA]/50 space-y-2">
-                  {session.description && (
-                    <p className="text-xs text-[#64748B]">{session.description}</p>
-                  )}
-                  {rx.exercises && rx.exercises.length > 0 && (
-                    <div className="space-y-1.5">
-                      {rx.exercises.map((ex, exIdx) => (
-                        <div key={exIdx} className="flex items-center gap-2 bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
-                          <span className="text-[9px] font-black text-[#8B5CF6] bg-[#F5F3FF] w-5 h-5 flex items-center justify-center rounded flex-shrink-0">
-                            {exIdx + 1}
-                          </span>
-                          <p className="text-xs font-bold text-[#0F172A] flex-1 truncate">
-                            {ex.name || ex.exercise || `Exercise ${exIdx + 1}`}
-                          </p>
-                          <span className="text-[10px] font-bold text-[#7C3AED] bg-[#F5F3FF] border border-[#E9D5FF] px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                            {formatExercise(ex)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {session.coachNotes && (
-                    <p className="text-[10px] text-[#64748B] italic pt-1 border-t border-[#DCE3EA]/50">{session.coachNotes}</p>
-                  )}
-                </div>
-              )}
-
-              {/* ── Expanded detail: Run ── */}
-              {isExpanded && isRun && (
-                <div className="px-5 pb-4 pt-2 bg-[#FAFBFC] border-t border-[#DCE3EA]/50 space-y-2">
-                  {session.description && (
-                    <p className="text-xs text-[#64748B]">{session.description}</p>
-                  )}
-                  <div className="grid grid-cols-2 gap-2">
-                    {rx.distance && (
-                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
-                        <p className="text-[8px] text-[#64748B] uppercase font-bold">Distance</p>
-                        <p className="text-sm font-black text-[#0F172A]">{rx.distance} km</p>
-                      </div>
-                    )}
-                    {rx.duration && (
-                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
-                        <p className="text-[8px] text-[#64748B] uppercase font-bold">Duration</p>
-                        <p className="text-sm font-black text-[#0F172A]">{rx.duration} min</p>
-                      </div>
-                    )}
-                    {rx.intensity && (
-                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
-                        <p className="text-[8px] text-[#64748B] uppercase font-bold">Intensity</p>
-                        <p className="text-sm font-black text-[#14B8A6] capitalize">{rx.intensity}</p>
-                      </div>
-                    )}
-                    {rx.pace && (
-                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
-                        <p className="text-[8px] text-[#64748B] uppercase font-bold">Pace</p>
-                        <p className="text-sm font-black text-[#0F172A]">{rx.pace}/km</p>
-                      </div>
-                    )}
-                    {rx.rpe && (
-                      <div className="bg-white border border-[#DCE3EA] rounded-xl px-3 py-2">
-                        <p className="text-[8px] text-[#64748B] uppercase font-bold">RPE</p>
-                        <p className="text-sm font-black text-[#0F172A]">{rx.rpe}</p>
-                      </div>
-                    )}
-                  </div>
-                  {session.coachNotes && (
-                    <p className="text-[10px] text-[#64748B] italic pt-1 border-t border-[#DCE3EA]/50">{session.coachNotes}</p>
-                  )}
-                </div>
-              )}
-
-              {/* ── Expanded detail: Rest ── */}
-              {isExpanded && isRest && (
-                <div className="px-5 pb-4 pt-2 bg-[#FAFBFC] border-t border-[#DCE3EA]/50">
-                  <div className="bg-white border border-[#DCE3EA] rounded-xl px-4 py-3 text-center">
-                    <Moon className="w-6 h-6 text-[#94A3B8] mx-auto mb-1" />
-                    <p className="text-sm font-bold text-[#64748B]">Recovery Day</p>
-                    <p className="text-[11px] text-[#94A3B8]">No prescribed workout.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
 // ─── Coach Workspace ────────────────────────────────────────────────────────
 function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
   const [activeCoachTab, setActiveCoachTab] = useState('insight');
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAthleteProfile, setShowAthleteProfile] = useState(false);
+  const [showAiSettings, setShowAiSettings] = useState(false);
+  const [athleteProfile, setAthleteProfile] = useState(null);
+  const [aiSettings, setAiSettings] = useState(() => getAISettings());
+
+  // ── Load Athlete Profile from Firestore on mount ──
+  useEffect(() => {
+    if (!user) return;
+    loadAthleteProfile(db, user.uid).then(profile => {
+      if (profile) {
+        setAthleteProfile(profile);
+      }
+    });
+  }, [user]);
 
   // ── Knowledge Snapshot ──
   const knowledge = useMemo(() => {
@@ -1882,6 +1881,20 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
           <BrainCircuit className="w-5 h-5 mr-2 text-[#14B8A6]"/>
           Coach Workspace
         </h2>
+        <button
+          onClick={() => setShowAthleteProfile(true)}
+          className="p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#E2E8F0] rounded-xl transition-all"
+          title="Athlete Profile"
+        >
+          <User className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setShowAiSettings(true)}
+          className="p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#E2E8F0] rounded-xl transition-all"
+          title="AI Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
       </div>
 
       {/* ── Toast for copy ── */}
@@ -1919,39 +1932,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
       {/* Insight Tab — Overview Page */}
       {activeCoachTab === 'insight' && (
         <div className="space-y-4">
-          {/* 1. Today's Recommendation */}
-          {coachInsight && (
-            <div className="rounded-3xl border border-[#CBD5E1]/50 bg-white overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
-                <div className="flex items-center gap-2">
-                  <BrainCircuit className="w-4 h-4 text-[#14B8A6]" />
-                  <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">Today's Recommendation</p>
-                </div>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                  coachInsight.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
-                  coachInsight.priority === 'low' ? 'bg-[#F1F5F9] text-[#64748B]' :
-                  'bg-[#ECFDF5] text-[#065F46]'
-                }`}>
-                  {coachInsight.priority === 'high' ? 'Important' : coachInsight.priority === 'low' ? 'Note' : 'Tip'}
-                </span>
-              </div>
-              <div className="px-4 py-3">
-                <p className="text-sm font-bold text-[#0F172A] mb-1">{coachInsight.title}</p>
-                <p className="text-xs text-[#64748B] leading-relaxed">{coachInsight.message}</p>
-              </div>
-            </div>
-          )}
-
-          {/* 2. Current Training Block */}
-          {activeTrainingBlock?.trainingBlock?.sessions && (
-            <WeeklyTrainingBlock
-              sessions={activeTrainingBlock.trainingBlock.sessions}
-              name={activeTrainingBlock.trainingBlock.name}
-              goal={activeTrainingBlock.trainingBlock.goal}
-            />
-          )}
-
-          {/* 3. Coach Insight — Knowledge Snapshot */}
+          {/* Coach Insight — Knowledge Snapshot */}
           {knowledge && (
             <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
               <div className="px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
@@ -2039,7 +2020,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
             </div>
           )}
 
-          {/* 4. Alerts Summary */}
+          {/* Alerts */}
           <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
               <div className="flex items-center gap-2">
@@ -2071,7 +2052,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
             </div>
           </div>
 
-          {/* 5. Weekly Review Summary */}
+          {/* Weekly Review */}
           <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
               <div className="flex items-center gap-2">
@@ -2094,7 +2075,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
             </div>
           </div>
 
-          {/* 6. Generate Next Block */}
+          {/* Generate Next Block */}
           <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
               <div className="flex items-center gap-2">
@@ -2113,7 +2094,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
             </div>
           </div>
 
-          {/* 7. Advanced Tools (collapsed) */}
+          {/* Advanced Tools */}
           <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
@@ -2284,6 +2265,37 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
           </button>
         </div>
       )}
+
+      {/* ── AI Settings Modal ── */}
+      {showAiSettings && (
+        <AiSettingsModal
+          profile={athleteProfile}
+          onSaveAiConfig={async ({ provider, model }) => {
+            const updatedProfile = { ...(athleteProfile || {}), aiProvider: provider, aiModel: model };
+            setAthleteProfile(updatedProfile);
+            saveAISettings({ provider, model });
+            if (user) {
+              await saveAthleteProfile(db, user.uid, { aiProvider: provider, aiModel: model });
+            }
+          }}
+          onClose={() => setShowAiSettings(false)}
+        />
+      )}
+
+      {/* ── Athlete Profile Modal ── */}
+      {showAthleteProfile && (
+        <AthleteProfileModal
+          profile={athleteProfile}
+          onSave={async (profile) => {
+            setAthleteProfile(profile);
+            setShowAthleteProfile(false);
+            if (user) {
+              await saveAthleteProfile(db, user.uid, profile);
+            }
+          }}
+          onClose={() => setShowAthleteProfile(false)}
+        />
+      )}
     </div>
   );
 }
@@ -2319,10 +2331,11 @@ function PipelineStep({ step, title, description, status, icon: Icon }) {
   );
 }
 
-function QuickInput({ onAdd, workouts, weeklyPlan }) {
+function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported }) {
   const [type, setType] = useState('Lari');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [showImportBlock, setShowImportBlock] = useState(false);
 
   const [runCat, setRunCat] = useState('Easy Run');
   const [dist, setDist] = useState('');
@@ -2478,17 +2491,35 @@ function QuickInput({ onAdd, workouts, weeklyPlan }) {
 
   return (
     <div className="bg-white border border-[#CBD5E1] p-5 rounded-3xl shadow-[0_12px_32px_rgba(17,24,39,0.08)] border border-[#DCE3EA] animate-in fade-in">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between gap-3 mb-5">
         <h2 className="text-lg font-bold text-[#0F172A] flex items-center">
-          <PlusCircle className="w-5 h-5 mr-2 text-[#14B8A6]"/> Input Cepat
+          <PlusCircle className="w-5 h-5 mr-2 text-[#14B8A6]"/> Catat Latihan
         </h2>
-        {fromPlan && (
-          <div className="flex items-center gap-1.5 bg-[#ECFDF5] border border-[#A7F3D0] rounded-full px-3 py-1">
-            <ClipboardList className="w-3 h-3 text-[#14B8A6]"/>
-            <span className="text-[10px] font-bold text-[#14B8A6]">Dari Plan</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {fromPlan && (
+            <div className="hidden sm:flex items-center gap-1.5 bg-[#ECFDF5] border border-[#A7F3D0] rounded-full px-3 py-1">
+              <ClipboardList className="w-3 h-3 text-[#14B8A6]"/>
+              <span className="text-[10px] font-bold text-[#14B8A6]">Dari Plan</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowImportBlock(true)}
+            className="flex items-center gap-1.5 rounded-xl border border-[#CBD5E1] bg-[#ECFDF5] px-3 py-2 text-[10px] font-bold text-[#0F766E] transition-colors hover:bg-[#CCFBF1]"
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            Impor Blok
+          </button>
+        </div>
       </div>
+
+      {showImportBlock && (
+        <ImportTrainingBlockModal
+          user={user}
+          onImportSuccess={onTrainingBlockImported}
+          onClose={() => setShowImportBlock(false)}
+        />
+      )}
 
       <div className="flex p-1.5 bg-[#F5F7F9] rounded-3xl mb-6 shadow-inner gap-1">
         {['Lari', 'Gym', 'Recovery'].map(t => (
@@ -2518,7 +2549,7 @@ function QuickInput({ onAdd, workouts, weeklyPlan }) {
                 onClick={loadLastGymSession}
                 className="px-3 py-2 rounded-xl bg-[#14B8A6] hover:bg-[#0F172A] text-white text-xs font-black transition-colors shadow-sm"
               >
-                Load Last {gymCat} Session
+                Muat Sesi {gymCat} Terakhir
               </button>
             )}
           </div>
@@ -2528,9 +2559,9 @@ function QuickInput({ onAdd, workouts, weeklyPlan }) {
           <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
             <div className="grid grid-cols-2 gap-3">
               <InputField label="Jarak (km)" type="number" step="0.01" value={dist} onChange={e=>setDist(e.target.value)} placeholder="5.0" required activeColor={typeConfig[type].border} />
-              <InputField label="Waktu (mnt)" type="number" value={dur} onChange={e=>setDur(e.target.value)} placeholder="30" required activeColor={typeConfig[type].border} />
+              <InputField label="Waktu (menit)" type="number" value={dur} onChange={e=>setDur(e.target.value)} placeholder="30" required activeColor={typeConfig[type].border} />
               <InputField label="Avg HR (opsional)" type="number" value={hr} onChange={e=>setHr(e.target.value)} placeholder="150" activeColor={typeConfig[type].border} />
-              <InputField label="Cadence (ops)" type="number" value={cadence} onChange={e=>setCadence(e.target.value)} placeholder="170" activeColor={typeConfig[type].border} />
+              <InputField label="Kadens (opsional)" type="number" value={cadence} onChange={e=>setCadence(e.target.value)} placeholder="170" activeColor={typeConfig[type].border} />
             </div>
             {/* Live Pace Preview */}
             {dist && dur && parseFloat(dist) > 0 && parseInt(dur) > 0 && (
@@ -2668,7 +2699,7 @@ function QuickInput({ onAdd, workouts, weeklyPlan }) {
         </div>
 
         <button type="submit" className={`w-full py-4 rounded-xl font-bold text-[#0F172A] shadow-xl transition-transform active:scale-95 ${typeConfig[type].submit}`}>
-          Simpan ke Cloud ☁️
+          Simpan Latihan
         </button>
       </form>
     </div>
@@ -2676,43 +2707,12 @@ function QuickInput({ onAdd, workouts, weeklyPlan }) {
 }
 
 // --- TAB 3: HISTORY ---
-function ExportModal({ workouts, weeklyPlan, onClose }) {
+function ExportModal({ workouts, onClose }) {
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0];
   const [from, setFrom] = React.useState(weekAgo);
   const [to, setTo]     = React.useState(today);
-  const [aiStatus, setAiStatus] = React.useState('idle'); // 'idle' | 'generating' | 'copied' | 'error'
   const [printError, setPrintError] = React.useState('');
-
-  const handleGenerateAIReview = async () => {
-    setAiStatus('generating');
-    try {
-      // Build weightHistory from Recovery workouts
-      const weightHistory = workouts
-        .filter(w => w.type === 'Recovery' && w.weight)
-        .map(w => ({ date: w.date, weight: w.weight }));
-
-      // Build athleteBrain from available data (goals, limitations, preferences, experience, notes)
-      const athleteBrain = {};
-
-      const result = runTrainingPipeline({
-        athleteBrain,
-        workouts,
-        weightHistory,
-        weeklyPlan,
-        currentDate: new Date(),
-      });
-
-      const fullPrompt = result.aiRequest.systemPrompt + '\n\n' + result.aiRequest.userPrompt;
-      await navigator.clipboard.writeText(fullPrompt);
-      setAiStatus('copied');
-      setTimeout(() => setAiStatus('idle'), 3000);
-    } catch (err) {
-      console.error('AI Review generation failed:', err);
-      setAiStatus('error');
-      setTimeout(() => setAiStatus('idle'), 3000);
-    }
-  };
 
   const filtered = workouts.filter(w => w.date >= from && w.date <= to)
     .sort((a,b) => a.date.localeCompare(b.date));
@@ -2785,21 +2785,30 @@ function ExportModal({ workouts, weeklyPlan, onClose }) {
         }
 
         const exercises = w.exercises;
-        const rowspan = Math.max(1, Math.trunc(exercises.length));
 
-        return exercises.map((ex,ei) => {
+        if (exercises.length === 0) {
+          return `<tr>
+      <td>${escapeHtml(fmtDate(w.date))}</td>
+      <td>${escapeHtml(w.category||'-')}</td>
+      <td>-</td><td>-</td><td>-</td>
+      <td>${escapeHtml(w.rpe||'-')}</td>
+      <td>${escapeHtml(String(w.notes||'-').substring(0,60))}</td>
+    </tr>`;
+        }
+
+        return exercises.map(ex => {
           const sets = Array.isArray(ex?.sets) ? ex.sets : [];
           const setSummary = sets.map(s => `${escapeHtml(s?.weight ?? '-')}kg×${escapeHtml(s?.reps ?? '-')}`).join(', ');
           const volume = sets.reduce((a,s)=>a+(parseFloat(s?.weight)||0)*(parseInt(s?.reps)||0),0).toFixed(0);
 
           return `<tr>
-      ${ei===0?`<td rowspan="${rowspan}">${escapeHtml(fmtDate(w.date))}</td>`:''}
-      ${ei===0?`<td rowspan="${rowspan}">${escapeHtml(w.category||'-')}</td>`:''}
+      <td>${escapeHtml(fmtDate(w.date))}</td>
+      <td>${escapeHtml(w.category||'-')}</td>
       <td>${escapeHtml(ex?.exercise||'-')}</td>
       <td>${setSummary}</td>
       <td>${escapeHtml(volume)} kg</td>
-      ${ei===0?`<td rowspan="${rowspan}">${escapeHtml(w.rpe||'-')}</td>`:''}
-      ${ei===0?`<td rowspan="${rowspan}">${escapeHtml(String(w.notes||'-').substring(0,60))}</td>`:''}
+      <td>${escapeHtml(w.rpe||'-')}</td>
+      <td>${escapeHtml(String(w.notes||'-').substring(0,60))}</td>
     </tr>`;
         });
       }).join('');
@@ -2816,10 +2825,14 @@ function ExportModal({ workouts, weeklyPlan, onClose }) {
     const categoryCounts = escapeHtml(`${gyms.filter(w=>w.category==='Push').length}P / ${gyms.filter(w=>w.category==='Pull').length}Pl / ${gyms.filter(w=>w.category==='Legs').length}L`);
 
     const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"/>
-<title>Workout Report ${escapedFrom} – ${escapedTo}</title>
+<title>Laporan Latihan ${escapedFrom} - ${escapedTo}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#1a1a2e;background:#fff;padding:28px 32px}
+.actions{position:sticky;top:0;z-index:2;display:flex;justify-content:flex-end;padding-bottom:14px;background:#fff}
+.print-button{min-height:44px;border:0;border-radius:8px;background:#0f766e;color:#fff;padding:10px 16px;font:700 12px 'Segoe UI',Arial,sans-serif;cursor:pointer}
+.print-button:hover{background:#115e59}
+.print-button:focus-visible{outline:3px solid #38bdf8;outline-offset:2px}
 h1{font-size:22px;font-weight:800;color:#1a1a2e;margin-bottom:3px}
 .sub{font-size:11px;color:#666;margin-bottom:20px}
 .summary{display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap}
@@ -2827,16 +2840,20 @@ h1{font-size:22px;font-weight:800;color:#1a1a2e;margin-bottom:3px}
 .sval{font-size:22px;font-weight:800;color:#1a1a2e;line-height:1.1}
 .slbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px}
 h2{font-size:13px;font-weight:700;margin:18px 0 6px;padding-bottom:4px;border-bottom:2px solid #e8e8f0}
-table{width:100%;border-collapse:collapse;font-size:10.5px}
+table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10.5px}
+thead{display:table-header-group}
+tr{break-inside:avoid;page-break-inside:avoid}
 th{background:#1a1a2e;color:#fff;padding:6px 7px;text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
-td{padding:5px 7px;border-bottom:1px solid #eee;vertical-align:top}
+td{padding:5px 7px;border-bottom:1px solid #eee;vertical-align:top;overflow-wrap:anywhere}
 tr:nth-child(even) td{background:#f8f8fc}
 .empty{color:#999;font-style:italic;padding:10px 0;font-size:11px}
 .footer{margin-top:28px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#aaa}
-@media print{body{padding:12px 16px}button{display:none!important}}
+@page{size:A4 landscape;margin:10mm}
+@media print{body{padding:0}.actions{display:none!important}}
 </style></head><body>
-<h1>🏃 Workout Report</h1>
-<p class="sub">Periode: <strong>${formattedFrom}</strong> — <strong>${formattedTo}</strong> &nbsp;|&nbsp; Digenerate: ${generatedAt}</p>
+<div class="actions"><button id="printReport" class="print-button" type="button">Cetak atau simpan PDF</button></div>
+<h1>Laporan Latihan</h1>
+<p class="sub">Periode: <strong>${formattedFrom}</strong> sampai <strong>${formattedTo}</strong> &nbsp;|&nbsp; Dibuat: ${generatedAt}</p>
 <div class="summary">
   <div class="sbox"><div class="sval">${runCount}</div><div class="slbl">Sesi Lari</div></div>
   <div class="sbox"><div class="sval">${totalDistance} km</div><div class="slbl">Total Jarak</div></div>
@@ -2859,23 +2876,16 @@ ${gyms.length===0?'<p class="empty">Tidak ada sesi gym pada periode ini.</p>':`
   <th>Set × Reps</th><th>Volume (kg)</th><th>RPE</th><th>Catatan</th>
 </tr></thead><tbody>${gymRows}</tbody></table>`}
 
-<p class="footer">HybridTrack Export • ${generatedAt}</p>
+<p class="footer">Ekspor HybridTrack • ${generatedAt}</p>
 <script>
-(() => {
-  let printStarted = false;
-  window.addEventListener('load', () => {
-    window.setTimeout(() => {
-      if (printStarted) return;
-      printStarted = true;
-      try {
-        window.focus();
-        window.print();
-      } catch (error) {
-        console.error('Gagal mencetak laporan:', error);
-      }
-    }, 150);
-  }, { once: true });
-})();
+document.getElementById('printReport').addEventListener('click', () => {
+  try {
+    window.focus();
+    window.print();
+  } catch (error) {
+    console.error('Gagal mencetak laporan:', error);
+  }
+});
 </script>
 </body></html>`;
       const reportBlob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -2904,13 +2914,13 @@ ${gyms.length===0?'<p class="empty">Tidak ada sesi gym pada periode ini.</p>':`
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center p-4">
-      <div className="bg-[#0d2137] border border-[#CBD5E1] rounded-3xl w-full max-w-md p-5 space-y-4">
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-[#CBD5E1] bg-white p-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black text-[#0F172A] flex items-center gap-2">
             <FileDown className="w-5 h-5 text-[#14B8A6]"/>
-            Export Laporan PDF
+            Ekspor Laporan PDF
           </h2>
-          <button onClick={onClose} className="text-[#64748B] hover:text-[#0F172A] p-1 transition-colors">
+          <button onClick={onClose} aria-label="Tutup ekspor laporan" className="text-[#64748B] hover:text-[#0F172A] p-1 transition-colors">
             <X className="w-5 h-5"/>
           </button>
         </div>
@@ -2949,21 +2959,16 @@ ${gyms.length===0?'<p class="empty">Tidak ada sesi gym pada periode ini.</p>':`
         </div>
 
         <button onClick={handlePrint} disabled={filtered.length === 0}
-          className="w-full py-3 rounded-xl font-black text-sm bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] text-[#05131c] disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all flex items-center justify-center gap-2">
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0F766E] py-3 text-sm font-black text-white transition-colors hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-40">
           <FileDown className="w-4 h-4"/>
-          Export PDF — {filtered.length} sesi
+          Ekspor PDF: {filtered.length} sesi
         </button>
         {printError && (
-          <p role="alert" className="text-xs font-semibold text-red-300 text-center">
+          <p role="alert" className="text-center text-xs font-semibold text-[#B91C1C]">
             {printError}
           </p>
         )}
 
-        <button onClick={handleGenerateAIReview} disabled={aiStatus === 'generating'}
-          className="w-full py-3 rounded-xl font-black text-sm bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all flex items-center justify-center gap-2">
-          <BrainCircuit className="w-4 h-4"/>
-          {aiStatus === 'generating' ? 'Generating...' : aiStatus === 'copied' ? '✅ Copied!' : aiStatus === 'error' ? '❌ Failed' : '🤖 Generate AI Review'}
-        </button>
       </div>
     </div>
   );
@@ -2976,19 +2981,23 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
   const [normalizedBlock, setNormalizedBlock] = React.useState(null);
   const [parseError, setParseError] = React.useState('');
   const [importError, setImportError] = React.useState('');
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [replacementCount, setReplacementCount] = React.useState(0);
+  const importLockRef = React.useRef(false);
 
   const handleValidate = () => {
     setParseError('');
     setValidationResult(null);
     setNormalizedBlock(null);
     setImportError('');
+    setReplacementCount(0);
 
     // 1. Parse JSON
     let parsed;
     try {
       parsed = JSON.parse(jsonText.trim());
-    } catch (e) {
-      setParseError('Invalid JSON format.');
+    } catch {
+      setParseError('Format JSON tidak valid.');
       return;
     }
 
@@ -3003,88 +3012,107 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
     }
   };
 
-  const handleImport = async () => {
-    console.log("STEP 1");
-    console.log({ normalizedBlock });
-    console.log({ user });
-
-    if (!normalizedBlock || !user) {
-      console.log("EARLY RETURN");
+  const commitImport = async (replaceActiveBlocks) => {
+    if (!normalizedBlock || importLockRef.current) return;
+    if (!user) {
+      setImportError('Sesi login tidak tersedia. Silakan login kembali.');
       return;
     }
 
-    console.log("STEP 2");
-
+    importLockRef.current = true;
+    setIsImporting(true);
     setImportError('');
 
     try {
-
-      console.log("STEP 3");
-
       const trainingBlocksRef = collection(db, 'users', user.uid, 'trainingBlocks');
+      const activeBlocksQuery = query(trainingBlocksRef, where('status', '==', 'active'));
+      const activeBlocksSnapshot = await getDocs(activeBlocksQuery);
 
-      console.log("STEP 4");
+      if (!replaceActiveBlocks && !activeBlocksSnapshot.empty) {
+        setReplacementCount(activeBlocksSnapshot.size);
+        return;
+      }
 
-      const docRef = doc(trainingBlocksRef);
+      const newBlockRef = doc(trainingBlocksRef);
+      const batch = writeBatch(db);
 
-      console.log("STEP 5");
+      if (replaceActiveBlocks) {
+        activeBlocksSnapshot.docs.forEach(activeBlockDoc => {
+          batch.update(activeBlockDoc.ref, {
+            status: 'superseded',
+            supersededAt: serverTimestamp(),
+            supersededBy: newBlockRef.id,
+          });
+        });
+      }
 
-      // ─── Deep sanitize: strip undefined/null/empty values recursively ──
       const sanitized = sanitizeForFirestore(normalizedBlock);
-
-      await setDoc(docRef, {
+      batch.set(newBlockRef, {
         ...sanitized,
         importedAt: serverTimestamp(),
-        status: "active",
+        status: 'active',
         importVersion: 1,
-        source: "AI"
+        source: 'AI',
       });
 
-      console.log("STEP 6");
-
-      onImportSuccess();
-
-      console.log("STEP 7");
-
+      await batch.commit();
+      onImportSuccess?.();
       onClose();
-
-      console.log("STEP 8");
-
     } catch (err) {
-
-      console.error("IMPORT FAILED");
-
-      console.error(err);
-
-      console.error(err.code);
-
-      console.error(err.message);
-
+      console.error('Training Block import failed:', err);
+      setImportError('Training Block gagal diimpor. Data lama tidak diubah. Silakan coba lagi.');
+    } finally {
+      importLockRef.current = false;
+      setIsImporting(false);
     }
   };
 
   const block = normalizedBlock?.trainingBlock;
   const sessionCount = block?.sessions?.length || 0;
 
+  const formatPrescription = (session) => {
+    const prescription = session?.prescription || {};
+    if (session?.type === 'Strength') {
+      const exercises = Array.isArray(prescription.exercises) ? prescription.exercises : [];
+      if (exercises.length === 0) return 'Belum ada gerakan';
+      return exercises.map(exercise => {
+        const sets = Array.isArray(exercise.sets) ? exercise.sets.length : exercise.sets;
+        const weight = exercise.weight != null ? ` @ ${exercise.weight} kg` : '';
+        return `${exercise.name}: ${sets} set × ${exercise.reps}${weight}`;
+      }).join(' • ');
+    }
+    if (session?.type === 'Run') {
+      return [
+        prescription.distance != null ? `${prescription.distance} km` : null,
+        prescription.duration != null ? `${prescription.duration} menit` : null,
+        prescription.intensity || null,
+      ].filter(Boolean).join(' • ') || 'Target lari';
+    }
+    return session?.description || 'Istirahat dan pemulihan';
+  };
+
+  const formatSessionType = (type) => ({ Strength: 'Kekuatan', Run: 'Lari', Rest: 'Istirahat' }[type] || type);
+
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center p-4">
-      <div className="bg-[#0d2137] border border-[#CBD5E1] rounded-3xl w-full max-w-md p-5 space-y-4">
+      <div className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl border border-[#CBD5E1] bg-white p-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black text-[#0F172A] flex items-center gap-2">
             <ClipboardList className="w-5 h-5 text-[#14B8A6]"/>
-            Import Training Block
+            Impor Blok Latihan
           </h2>
-          <button onClick={onClose} className="text-[#64748B] hover:text-[#0F172A] p-1 transition-colors">
+          <button onClick={onClose} disabled={isImporting} aria-label="Tutup impor Blok Latihan" className="text-[#64748B] hover:text-[#0F172A] p-1 transition-colors disabled:opacity-40">
             <X className="w-5 h-5"/>
           </button>
         </div>
 
         <textarea
           value={jsonText}
-          onChange={e => { setJsonText(e.target.value); setParseError(''); setValidationResult(null); setNormalizedBlock(null); }}
+          onChange={e => { setJsonText(e.target.value); setParseError(''); setValidationResult(null); setNormalizedBlock(null); setImportError(''); setReplacementCount(0); }}
           rows={10}
-          placeholder="Paste the JSON generated by DeepSeek..."
-          className="w-full bg-[#fbfcfe] border border-[#CBD5E1] rounded-3xl px-3 py-2.5 text-xs text-[#0F172A] font-mono focus:border-[#14B8A6] outline-none resize-none leading-relaxed"
+          placeholder="Tempel JSON Blok Latihan dari Perplexity Space..."
+          aria-label="JSON Blok Latihan"
+          className="w-full resize-none rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-2.5 font-mono text-xs leading-relaxed text-[#0F172A] outline-none focus:border-[#14B8A6]"
         />
 
         {/* Parse error */}
@@ -3097,7 +3125,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
         {/* Validation errors */}
         {validationResult && !validationResult.valid && (
           <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-2xl px-3 py-2 space-y-1">
-            <p className="text-[10px] font-bold text-[#991B1B] uppercase tracking-wider">Validation Errors</p>
+            <p className="text-xs font-bold text-[#991B1B]">Kesalahan validasi</p>
             {validationResult.errors.map((err, i) => (
               <p key={i} className="text-[11px] text-[#991B1B] flex items-start gap-1.5">
                 <span className="text-[#991B1B] mt-0.5">•</span> {err}
@@ -3109,7 +3137,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
         {/* Validation warnings */}
         {validationResult && validationResult.warnings.length > 0 && (
           <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl px-3 py-2 space-y-1">
-            <p className="text-[10px] font-bold text-[#92400E] uppercase tracking-wider">Warnings</p>
+            <p className="text-xs font-bold text-[#92400E]">Peringatan</p>
             {validationResult.warnings.map((warn, i) => (
               <p key={i} className="text-[11px] text-[#92400E] flex items-start gap-1.5">
                 <span className="text-[#92400E] mt-0.5">•</span> {warn}
@@ -3123,39 +3151,89 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
           <div className="bg-[#ECFDF5] border border-[#A7F3D0] rounded-2xl px-4 py-3 space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-[#14B8A6]"/>
-              <span className="text-xs font-bold text-[#065F46]">Training Block Valid</span>
+              <span className="text-xs font-bold text-[#065F46]">Blok Latihan valid</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div>
-                <span className="text-[#64748B]">Name:</span>{' '}
+                <span className="text-[#64748B]">Nama:</span>{' '}
                 <span className="font-bold text-[#0F172A]">{block?.name || '—'}</span>
               </div>
               <div>
-                <span className="text-[#64748B]">Goal:</span>{' '}
+                <span className="text-[#64748B]">Tujuan:</span>{' '}
                 <span className="font-bold text-[#0F172A]">{block?.goal || '—'}</span>
               </div>
               <div>
-                <span className="text-[#64748B]">Sessions:</span>{' '}
+                <span className="text-[#64748B]">Jumlah sesi:</span>{' '}
                 <span className="font-bold text-[#0F172A]">{sessionCount}</span>
               </div>
             </div>
+            <div className="space-y-2 border-t border-[#A7F3D0] pt-2">
+              {block?.sessions?.map((session, index) => (
+                <div key={session.id || index} className="rounded-xl bg-white/80 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-bold text-[#0F172A]">
+                      {session.order || index + 1}. {session.title}
+                    </p>
+                    <span className="rounded-full bg-[#E2E8F0] px-2 py-0.5 text-[9px] font-bold text-[#475569]">
+                      {formatSessionType(session.type)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[10px] leading-relaxed text-[#64748B]">{formatPrescription(session)}</p>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
+
+        {replacementCount > 0 && (
+          <div className="rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#D97706]" />
+              <p className="text-[11px] leading-relaxed text-[#78350F]">
+                {replacementCount} Blok Latihan aktif akan digantikan. Blok lama tidak dihapus dan tetap tersimpan sebagai riwayat.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setReplacementCount(0)}
+                disabled={isImporting}
+                className="flex-1 rounded-xl border border-[#FDE68A] bg-white py-2 text-xs font-bold text-[#78350F] disabled:opacity-40"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => commitImport(true)}
+                disabled={isImporting}
+                className="flex-1 rounded-xl bg-[#D97706] py-2 text-xs font-bold text-white disabled:opacity-40"
+              >
+                {isImporting ? 'Mengimpor...' : 'Ganti Blok Aktif'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {importError && (
+          <p role="alert" className="flex items-start gap-1.5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-xs text-[#991B1B]">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" /> {importError}
+          </p>
         )}
 
         {/* Import ready */}
 
         <div className="flex gap-2">
-          <button onClick={onClose}
-            className="flex-1 py-2 border border-[#CBD5E1] rounded-3xl text-[#0F172A] text-sm font-bold hover:text-[#0F172A] hover:bg-[#FFFFFF] transition-colors">
-            Cancel
+          <button onClick={onClose} disabled={isImporting}
+            className="flex-1 rounded-xl border border-[#CBD5E1] py-2 text-sm font-bold text-[#0F172A] transition-colors hover:bg-[#F8FAFC] disabled:opacity-40">
+            Batal
           </button>
-          <button onClick={handleValidate} disabled={!jsonText.trim()}
-            className="flex-1 py-2 bg-[#0F172A] text-[#0F172A] font-black text-sm rounded-3xl disabled:opacity-40 disabled:cursor-not-allowed transition-opacity">
-            Validate
+          <button onClick={handleValidate} disabled={!jsonText.trim() || isImporting}
+            className="flex-1 rounded-xl bg-[#0F172A] py-2 text-sm font-black text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40">
+            Validasi
           </button>
-          <button onClick={handleImport} disabled={!normalizedBlock}
-            className="flex-1 py-2 bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] text-[#05131c] font-black text-sm rounded-3xl disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all">
-            Import
+          <button onClick={() => commitImport(false)} disabled={!normalizedBlock || isImporting || replacementCount > 0}
+            className="flex-1 rounded-xl bg-[#0F766E] py-2 text-sm font-black text-white transition-colors hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-40">
+            {isImporting ? 'Mengimpor...' : 'Impor Blok'}
           </button>
         </div>
       </div>
@@ -3164,10 +3242,9 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
 }
 
 
-function History({ workouts, weeklyPlan, user, setShowToast, onDelete, onEdit }) {
+function History({ workouts, onDelete, onEdit }) {
   const [expanded, setExpanded] = useState({});
   const [showExport, setShowExport] = React.useState(false);
-  const [showImportBlock, setShowImportBlock] = React.useState(false);
   const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
   const sorted = [...workouts].sort((a,b) => {
@@ -3222,20 +3299,14 @@ function History({ workouts, weeklyPlan, user, setShowToast, onDelete, onEdit })
           <List className="w-5 h-5 mr-2 text-[#14B8A6]"/> Riwayat Sesi
         </h2>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowImportBlock(true)}
-            className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl bg-[#ECFDF5] text-[#14B8A6] hover:bg-[#99F6E4] hover:text-[#0F172A] transition-all border border-[#CBD5E1]/40">
-            <Plus className="w-3.5 h-3.5"/>
-            Import Block
-          </button>
           <button onClick={() => setShowExport(true)}
             className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl bg-[#FFFFFF] text-[#0F172A] hover:bg-[#99F6E4]/20 hover:text-[#14B8A6] transition-all border border-[#CBD5E1]/40">
             <FileDown className="w-3.5 h-3.5"/>
-            Export PDF
+            Ekspor PDF
           </button>
         </div>
       </div>
-      {showExport && <ExportModal workouts={workouts} weeklyPlan={weeklyPlan} onClose={() => setShowExport(false)}/>}
-      {showImportBlock && <ImportTrainingBlockModal user={user} onImportSuccess={() => { setShowToast(true); setTimeout(() => setShowToast(false), 3000); }} onClose={() => setShowImportBlock(false)}/>}
+      {showExport && <ExportModal workouts={workouts} onClose={() => setShowExport(false)}/>}
       {groupedDates.map(dateKey => (
         <div key={dateKey} className="mb-2">
           {/* Date separator */}
@@ -3292,11 +3363,9 @@ function History({ workouts, weeklyPlan, user, setShowToast, onDelete, onEdit })
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}/>
                     </button>
                   )}
-                  {!isGymSession && (
-                    <button onClick={() => onEdit(w)} className="p-1.5 text-[#64748B] hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 rounded-lg transition-colors">
-                      <Pencil className="w-3.5 h-3.5"/>
-                    </button>
-                  )}
+                  <button onClick={() => onEdit(w)} className="p-1.5 text-[#64748B] hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 rounded-lg transition-colors">
+                    <Pencil className="w-3.5 h-3.5"/>
+                  </button>
                   <button onClick={() => onDelete(w.id)} className="p-1.5 text-[#64748B] hover:text-[#d07573] hover:bg-[#c76360]/10 rounded-lg transition-colors">
                     <Trash2 className="w-3.5 h-3.5"/>
                   </button>
@@ -3819,6 +3888,8 @@ function ExerciseField({ value, onChange, workouts, activeColor, category, templ
 function EditModal({ workout, onClose, onSave }) {
   const [date, setDate]         = useState(workout.date || '');
   const [notes, setNotes]       = useState(workout.notes || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Lari
   const [dist, setDist]         = useState(workout.distance?.toString() || '');
@@ -3830,21 +3901,28 @@ function EditModal({ workout, onClose, onSave }) {
   const [planStatus, setPlanStatus] = useState(workout.planStatus || 'Sesuai Plan');
 
   // Gym
+  const gymSchema = workout.type === 'Gym' ? getGymSchema(workout) : null;
   const [exercise, setExercise] = useState(workout.exercise || '');
+  const [legacyWeight, setLegacyWeight] = useState(workout.weight?.toString() || '');
+  const [legacySets, setLegacySets] = useState(workout.sets?.toString() || '');
+  const [legacyReps, setLegacyReps] = useState(workout.reps?.toString() || '');
   // Parse workout.sets: exercises[] (v3), sets[] (v2), or number (v1)
   const initEditExercises = () => {
-    if (workout.exercises && workout.exercises.length > 0) {
+    if (gymSchema === 'v3') {
       return workout.exercises.map(e => ({
-        exercise: e.exercise || '',
-        sets: (e.sets || []).map(s => ({ weight: s.weight?.toString() || '', reps: s.reps?.toString() || '' })),
+        exercise: e?.exercise || '',
+        sets: Array.isArray(e?.sets)
+          ? e.sets.map(s => ({ weight: s?.weight?.toString() || '', reps: s?.reps?.toString() || '' }))
+          : [],
       }));
     }
-    // v2 format: single exercise with sets array
-    if (Array.isArray(workout.sets)) {
-      return [{ exercise: workout.exercise || '', sets: workout.sets.map(s => ({ weight: s.weight?.toString()||'', reps: s.reps?.toString()||'' })) }];
+    if (gymSchema === 'v2') {
+      return [{
+        exercise: workout.exercise || '',
+        sets: workout.sets.map(s => ({ weight: s?.weight?.toString() || '', reps: s?.reps?.toString() || '' })),
+      }];
     }
-    // v1 format: single exercise single set
-    return [{ exercise: workout.exercise || '', sets: [{ weight: workout.weight?.toString()||'', reps: workout.reps?.toString()||'' }] }];
+    return [];
   };
   const [editExercises, setEditExercises] = useState(initEditExercises);
   const [editSets, setEditSets] = useState([]); // kept for non-gym use
@@ -3864,21 +3942,84 @@ function EditModal({ workout, onClose, onSave }) {
   };
   const headerColor = typeColors[workout.type] || typeColors.Recovery;
 
-  const handleSave = () => {
-    let updated = { ...workout, date, notes };
+  const handleSave = async () => {
+    setSaveError('');
+    let updated;
+
+    if (!date) {
+      setSaveError('Tanggal wajib diisi.');
+      return;
+    }
+
     if (workout.type === 'Lari') {
       const d = parseFloat(dist), m = parseInt(dur);
       const pace = (d > 0 && m > 0) ? parseFloat((m / d).toFixed(4)) : null;
-      updated = { ...updated, category: runCat, distance: d, duration: m, hr: parseInt(hr)||null, cadence: parseInt(cadence)||null, rpe: parseInt(runRpe), planStatus, pace };
+      updated = { date, notes, category: runCat, distance: d, duration: m, hr: parseInt(hr)||null, cadence: parseInt(cadence)||null, rpe: parseInt(runRpe), planStatus, pace };
     } else if (workout.type === 'Gym') {
-      const validExercises = editExercises
-        .filter(e => e.exercise && e.sets.some(s => s.weight && s.reps))
-        .map(e => ({ exercise: e.exercise, sets: e.sets.filter(s=>s.weight&&s.reps).map(s=>({ weight: parseFloat(s.weight), reps: parseInt(s.reps) })) }));
-      updated = { ...updated, category: gymCat, exercises: validExercises, rpe: parseInt(gymRpe) };
+      const rpe = parseInt(gymRpe);
+      const hasValidSet = set =>
+        set.weight !== '' && Number.isFinite(Number(set.weight)) && Number(set.weight) >= 0 &&
+        set.reps !== '' && Number.isInteger(Number(set.reps)) && Number(set.reps) > 0;
+
+      if (!Number.isInteger(rpe) || rpe < 1 || rpe > 10) {
+        setSaveError('RPE Gym harus berada di antara 1 dan 10.');
+        return;
+      }
+
+      if (gymSchema === 'v3') {
+        const isValid = editExercises.length > 0 && editExercises.every(item =>
+          item.exercise.trim() && item.sets.length > 0 && item.sets.every(hasValidSet)
+        );
+        if (!isValid) {
+          setSaveError('Lengkapi setiap exercise dan set sebelum menyimpan.');
+          return;
+        }
+        updated = {
+          date, notes, category: gymCat, rpe,
+          exercises: editExercises.map(item => ({
+            exercise: item.exercise.trim(),
+            sets: item.sets.map(set => ({ weight: Number(set.weight), reps: Number(set.reps) })),
+          })),
+        };
+      } else if (gymSchema === 'v2') {
+        const item = editExercises[0];
+        if (editExercises.length !== 1 || !item?.exercise.trim() || item.sets.length === 0 || !item.sets.every(hasValidSet)) {
+          setSaveError('Lengkapi exercise dan setiap set sebelum menyimpan.');
+          return;
+        }
+        updated = {
+          date, notes, category: gymCat, rpe,
+          exercise: item.exercise.trim(),
+          sets: item.sets.map(set => ({ weight: Number(set.weight), reps: Number(set.reps) })),
+        };
+      } else if (gymSchema === 'v1') {
+        const weight = Number(legacyWeight);
+        const sets = Number(legacySets);
+        const reps = Number(legacyReps);
+        if (!exercise.trim() || legacyWeight === '' || !Number.isFinite(weight) || weight < 0 ||
+            legacySets === '' || !Number.isInteger(sets) || sets <= 0 ||
+            legacyReps === '' || !Number.isInteger(reps) || reps <= 0) {
+          setSaveError('Lengkapi exercise, weight, jumlah set, dan reps sebelum menyimpan.');
+          return;
+        }
+        updated = { date, notes, category: gymCat, rpe, exercise: exercise.trim(), weight, sets, reps };
+      } else {
+        setSaveError('Format Gym ini belum dapat diedit dengan aman.');
+        return;
+      }
     } else {
-      updated = { ...updated, sleep: parseFloat(sleep), soreness: parseInt(soreness), fatigue: parseInt(fatigue) };
+      updated = { date, notes, sleep: parseFloat(sleep), soreness: parseInt(soreness), fatigue: parseInt(fatigue) };
     }
-    onSave(updated);
+
+    setIsSaving(true);
+    try {
+      await onSave(updated);
+      setIsSaving(false);
+      onClose();
+    } catch {
+      setIsSaving(false);
+      setSaveError('Perubahan gagal disimpan. Silakan coba lagi.');
+    }
   };
 
   const inputCls = (focus) => `w-full bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-3 py-3 text-[#0F172A] text-sm focus:outline-none transition-colors placeholder:text-[#94A3B8] ${focus}`;
@@ -3892,9 +4033,9 @@ function EditModal({ workout, onClose, onSave }) {
         <div className={`p-4 flex items-center justify-between shrink-0 bg-gradient-to-r ${headerColor} border-b`}>
           <div className="flex items-center space-x-2">
             <Pencil className="w-4 h-4 text-[#0F172A]" />
-            <h3 className="font-bold text-[#0F172A] text-sm">Edit {workout.type === 'Lari' ? 'Lari' : workout.type === 'Gym' ? workout.exercise : 'Recovery'}</h3>
+            <h3 className="font-bold text-[#0F172A] text-sm">Edit {workout.type === 'Lari' ? 'Lari' : workout.type === 'Gym' ? (workout.exercises?.[0]?.exercise || workout.exercise || 'Gym') : 'Recovery'}</h3>
           </div>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-[#DCE3EA] text-[#0F172A]"><X className="w-5 h-5"/></button>
+          <button onClick={onClose} disabled={isSaving} className="p-1 rounded-full hover:bg-[#DCE3EA] text-[#0F172A] disabled:opacity-50 disabled:cursor-not-allowed"><X className="w-5 h-5"/></button>
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
@@ -3951,12 +4092,32 @@ function EditModal({ workout, onClose, onSave }) {
                 </select>
               </div>
 
+              {gymSchema === 'unknown' && (
+                <p role="alert" className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                  Format Gym ini belum dapat diedit dengan aman.
+                </p>
+              )}
+
+              {gymSchema === 'v1' && (
+                <div className="space-y-3 bg-[#F5F7F9] border border-[#CBD5E1]/15 rounded-xl p-3">
+                  <div>
+                    <label className={labelCls}>Nama Gerakan</label>
+                    <input type="text" value={exercise} onChange={e=>setExercise(e.target.value)} className={inputCls('focus:border-[#CBD5E1]') + ' py-2'} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><label className={labelCls}>Berat</label><input type="number" step="0.5" value={legacyWeight} onChange={e=>setLegacyWeight(e.target.value)} className={inputCls('focus:border-[#CBD5E1]') + ' py-2'} /></div>
+                    <div><label className={labelCls}>Set</label><input type="number" min="1" value={legacySets} onChange={e=>setLegacySets(e.target.value)} className={inputCls('focus:border-[#CBD5E1]') + ' py-2'} /></div>
+                    <div><label className={labelCls}>Reps</label><input type="number" min="1" value={legacyReps} onChange={e=>setLegacyReps(e.target.value)} className={inputCls('focus:border-[#CBD5E1]') + ' py-2'} /></div>
+                  </div>
+                </div>
+              )}
+
               {/* Exercise list */}
-              {editExercises.map((ex, eIdx) => (
+              {(gymSchema === 'v2' || gymSchema === 'v3') && editExercises.map((ex, eIdx) => (
                 <div key={eIdx} className="bg-[#F5F7F9] border border-[#CBD5E1]/15 rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 bg-[#FFFFFF] border-b border-[#CBD5E1]/10">
                     <span className="text-[9px] font-black text-[#64748B] uppercase">Gerakan {eIdx+1}</span>
-                    {editExercises.length > 1 && (
+                    {gymSchema === 'v3' && editExercises.length > 1 && (
                       <button type="button" onClick={() => setEditExercises(prev => prev.filter((_,i)=>i!==eIdx))}
                         className="text-[#64748B] hover:text-[#d07573]"><X className="w-3 h-3"/></button>
                     )}
@@ -3997,7 +4158,7 @@ function EditModal({ workout, onClose, onSave }) {
                 </div>
               ))}
 
-              {editExercises.length < 5 && (
+              {gymSchema === 'v3' && editExercises.length < 5 && (
                 <button type="button" onClick={() => setEditExercises(prev=>[...prev,{exercise:'',sets:[{weight:'',reps:''}]}])}
                   className="w-full py-2.5 rounded-xl border border-dashed border-[#CBD5E1] text-[#64748B] hover:text-[#0F172A] text-xs font-bold transition-all">
                   + Tambah Gerakan {editExercises.length + 1}
@@ -4025,12 +4186,17 @@ function EditModal({ workout, onClose, onSave }) {
               className="w-full bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-4 py-3 text-[#0F172A] text-sm focus:outline-none focus:border-[#14B8A6] transition-colors resize-none"
             />
           </div>
+          {saveError && (
+            <p role="alert" className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              {saveError}
+            </p>
+          )}
         </div>
 
         {/* Footer */}
         <div className="p-4 border-t border-[#CBD5E1] shrink-0 grid grid-cols-2 gap-3 pb-8 sm:pb-4">
-          <button onClick={onClose} className="py-3.5 rounded-xl bg-[#8B5CF6] hover:bg-[#2d3f72] text-[#0F172A] font-bold transition-all active:scale-95 text-sm">Batal</button>
-          <button onClick={handleSave} className="py-3.5 rounded-xl bg-gradient-to-r from-[#99F6E4] to-[#14B8A6] text-[#0F172A] font-bold shadow-lg shadow-[#99F6E4]/20 transition-all active:scale-95 text-sm">Simpan</button>
+          <button onClick={onClose} disabled={isSaving} className="py-3.5 rounded-xl bg-[#8B5CF6] hover:bg-[#2d3f72] text-[#0F172A] font-bold transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed">Batal</button>
+          <button onClick={handleSave} disabled={isSaving} className="py-3.5 rounded-xl bg-gradient-to-r from-[#99F6E4] to-[#14B8A6] text-[#0F172A] font-bold shadow-lg shadow-[#99F6E4]/20 transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed">{isSaving ? 'Menyimpan...' : 'Simpan'}</button>
         </div>
       </div>
     </div>

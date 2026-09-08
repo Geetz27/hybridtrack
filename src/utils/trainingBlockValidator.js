@@ -72,6 +72,18 @@ function isValidISODate(value) {
   return !isNaN(d.getTime()) && value === d.toISOString();
 }
 
+function isValidDateOnly(value) {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const [, year, month, day] = match.map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year
+    && date.getMonth() === month - 1
+    && date.getDate() === day;
+}
+
 /**
  * Check if a value is a number.
  */
@@ -238,6 +250,10 @@ function validateSessions(sessions, errors, warnings) {
       errors.push(`${prefix}.isOptional must be a boolean`);
     }
 
+    if (session.scheduledDate != null && !isValidDateOnly(session.scheduledDate)) {
+      errors.push(`${prefix}.scheduledDate must be a valid YYYY-MM-DD date`);
+    }
+
     // prescription
     if (session.prescription != null) {
       validatePrescription(session.prescription, session.type, prefix, errors, warnings);
@@ -246,7 +262,7 @@ function validateSessions(sessions, errors, warnings) {
     // Unknown session fields
     const sessionKnown = [
       'id', 'order', 'status', 'priority', 'isOptional', 'type',
-      'title', 'description', 'coachNotes', 'completedAt',
+      'title', 'description', 'coachNotes', 'scheduledDate', 'completedAt',
       'completedWorkoutId', 'prescription',
     ];
     warnings.push(...collectUnknownFields(session, sessionKnown, `${prefix}`));

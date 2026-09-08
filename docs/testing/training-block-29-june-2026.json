@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "DeepSeek",
+  "generatedAt": "2026-07-03T00:00:00.000Z",
+  "trainingBlock": {
+    "name": "Week of 29 June 2026 — Fat Loss & Momentum",
+    "goal": "Continue fat loss, maintain strength, improve aerobic endurance, resume momentum after missing Legs, keep recovery manageable.",
+    "sessions": [
+      {
+        "id": "s1",
+        "order": 1,
+        "type": "Strength",
+        "title": "Push",
+        "description": "Upper body pushing strength session focusing on chest, shoulders, and triceps. Maintain intensity to preserve strength progression.",
+        "coachNotes": "Focus on controlled negatives. Keep RPE 7-8. If fatigued, reduce weight on final set.",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "strength",
+          "exercises": [
+            {
+              "name": "Smith Machine Bench Press",
+              "sets": 3,
+              "reps": "8-10",
+              "weight": 27.5,
+              "notes": "Keep elbows at 45 degrees"
+            },
+            {
+              "name": "Incline DB Press",
+              "sets": 3,
+              "reps": "10-12",
+              "weight": 20,
+              "notes": "Full range of motion"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 3,
+              "reps": "12-15",
+              "weight": 6,
+              "notes": "Control the negative"
+            },
+            {
+              "name": "Tricep Pushdown",
+              "sets": 3,
+              "reps": "12-15",
+              "weight": 25,
+              "notes": "Squeeze at the bottom"
+            }
+          ]
+        }
+      },
+      {
+        "id": "s2",
+        "order": 2,
+        "type": "Run",
+        "title": "Easy Run",
+        "description": "Aerobic base run at conversational pace to build endurance and aid recovery.",
+        "coachNotes": "Keep heart rate low. If breathing gets heavy, walk 45-60 seconds.",
+        "status": "pending",
+        "priority": "medium",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "run",
+          "distance": 3.5,
+          "intensity": "Easy",
+          "notes": "Stay relaxed, focus on form"
+        }
+      },
+      {
+        "id": "s3",
+        "order": 3,
+        "type": "Strength",
+        "title": "Pull",
+        "description": "Upper body pulling strength session focusing on back and biceps.",
+        "coachNotes": "Focus on scapular retraction. Maintain same loads as last week.",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "strength",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 3,
+              "reps": "8-10",
+              "weight": 32,
+              "notes": "Pull to upper chest"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 3,
+              "reps": "10-12",
+              "weight": 40,
+              "notes": "Squeeze shoulder blades together"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 3,
+              "reps": "12-15",
+              "weight": 36,
+              "notes": "External rotation at the end"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 3,
+              "reps": "12-15",
+              "weight": 12.5,
+              "notes": "Control the negative"
+            }
+          ]
+        }
+      },
+      {
+        "id": "s4",
+        "order": 4,
+        "type": "Run",
+        "title": "Tempo Run",
+        "description": "Quality run at threshold pace to improve aerobic capacity and lactate clearance.",
+        "coachNotes": "Start easy, build to tempo effort by minute 5. Hold for 15 minutes, then cool down.",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "run",
+          "distance": 5.0,
+          "intensity": "Tempo",
+          "notes": "Warm up 1 km easy, 3 km at tempo pace, cool down 1 km easy"
+        }
+      },
+      {
+        "id": "s5",
+        "order": 5,
+        "type": "Strength",
+        "title": "Legs",
+        "description": "Lower body strength session focusing on quads, hamstrings, and glutes. Resume momentum after missed session last week.",
+        "coachNotes": "Warm up thoroughly. Start slightly lighter than previous Legs session to ease back in.",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "strength",
+          "exercises": [
+            {
+              "name": "Leg Press",
+              "sets": 3,
+              "reps": "10-12",
+              "weight": 50,
+              "notes": "Full range of motion, slightly lighter to resume momentum"
+            },
+            {
+              "name": "RDL (Dumbbell)",
+              "sets": 3,
+              "reps": "8-10",
+              "weight": 17.5,
+              "notes": "Keep back straight"
+            },
+            {
+              "name": "Seated Leg Curl",
+              "sets": 3,
+              "reps": "12-15",
+              "weight": 45,
+              "notes": "Control the negative"
+            },
+            {
+              "name": "Standing Calf Raise",
+              "sets": 3,
+              "reps": "15-20",
+              "weight": 17.5,
+              "notes": "Full range of motion"
+            }
+          ]
+        }
+      },
+      {
+        "id": "s6",
+        "order": 6,
+        "type": "Rest",
+        "title": "Rest",
+        "description": "Full recovery day. No training scheduled.",
+        "coachNotes": "Focus on nutrition, hydration, and sleep. Prepare weekly summary for coach.",
+        "status": "pending",
+        "priority": "low",
+        "isOptional": false,
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "rest"
+        }
+      }
+    ]
+  }
+}

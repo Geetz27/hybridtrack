@@ -156,6 +156,7 @@ export function normalizeTrainingBlock(trainingBlockJson) {
         if (typeof session.title === 'string') session.title = session.title.trim();
         if (typeof session.description === 'string') session.description = session.description.trim();
         if (typeof session.coachNotes === 'string') session.coachNotes = session.coachNotes.trim();
+        if (typeof session.scheduledDate === 'string') session.scheduledDate = session.scheduledDate.trim();
 
         // Apply defaults
         if (session.order == null) session.order = idx + 1;

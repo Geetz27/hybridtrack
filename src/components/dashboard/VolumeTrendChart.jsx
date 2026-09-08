@@ -1,11 +1,9 @@
-import React from 'react';
-
 export default function VolumeTrendChart({ data, unit, title, color = '#3b82f6' }) {
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{title}</h3>
-        <p className="text-xs text-gray-400">No data yet</p>
+      <div className="rounded-2xl border border-[#DCE3EA] bg-white p-4">
+        <h3 className="mb-2 text-sm font-bold text-[#0F172A]">{title}</h3>
+        <p className="text-xs text-[#64748B]">Belum ada data.</p>
       </div>
     );
   }
@@ -15,11 +13,11 @@ export default function VolumeTrendChart({ data, unit, title, color = '#3b82f6' 
   const barWidth = Math.max(20, Math.min(40, 600 / data.length));
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+    <div className="rounded-2xl border border-[#DCE3EA] bg-white p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{title}</h3>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          Total: {values.reduce((a, b) => a + b, 0).toLocaleString()} {unit}
+        <h3 className="text-sm font-bold text-[#0F172A]">{title}</h3>
+        <span className="text-xs text-[#64748B]">
+          Total {values.reduce((a, b) => a + b, 0).toLocaleString('id-ID')} {unit}
         </span>
       </div>
 
@@ -72,10 +70,10 @@ export default function VolumeTrendChart({ data, unit, title, color = '#3b82f6' 
       </div>
 
       {/* Summary stats */}
-      <div className="flex justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-        <span>Avg: {(values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)} {unit}</span>
-        <span>Peak: {max} {unit}</span>
-        <span>Latest: {values[values.length - 1]} {unit}</span>
+      <div className="mt-2 flex justify-between border-t border-[#E2E8F0] pt-2 text-xs text-[#64748B]">
+        <span>Rata-rata: {(values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)} {unit}</span>
+        <span>Tertinggi: {max} {unit}</span>
+        <span>Terbaru: {values[values.length - 1]} {unit}</span>
       </div>
     </div>
   );

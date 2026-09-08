@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "Codex",
+  "generatedAt": "2026-09-08T07:00:00.000Z",
+  "trainingBlock": {
+    "name": "BayRun 10K Sub-60 - Pekan 1",
+    "goal": "Memulai kembali frekuensi latihan dengan dua lari ringan dan menjaga latihan upper body tanpa menambah kelelahan kaki.",
+    "week": "2026-09-09/2026-09-13",
+    "sessions": [
+      {
+        "id": "2026-09-09-push",
+        "order": 1,
+        "scheduledDate": "2026-09-09",
+        "status": "pending",
+        "priority": "medium",
+        "isOptional": false,
+        "type": "Strength",
+        "title": "Push",
+        "description": "Rabu, 9 September. Push dengan volume normal dan tanpa set sampai gagal.",
+        "coachNotes": "Target RPE 7. Sisakan 2-3 repetisi pada setiap set dan sesuaikan beban jika beban kerja terakhirmu sudah berubah.",
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "strength",
+          "exercises": [
+            {
+              "name": "Smith Machine Bench Press",
+              "sets": [
+                { "set": 1, "weight": 25, "reps": 10 },
+                { "set": 2, "weight": 27.5, "reps": 10 },
+                { "set": 3, "weight": 27.5, "reps": 10 }
+              ],
+              "reps": 10,
+              "weight": 27.5,
+              "notes": "Kontrol gerakan; hentikan set jika form menurun."
+            },
+            {
+              "name": "Smith Machine Incline Press",
+              "sets": [
+                { "set": 1, "weight": 25, "reps": 10 },
+                { "set": 2, "weight": 25, "reps": 10 },
+                { "set": 3, "weight": 25, "reps": 10 }
+              ],
+              "reps": 10,
+              "weight": 25,
+              "notes": "Sisakan 2-3 repetisi."
+            },
+            {
+              "name": "Machine Chest Fly",
+              "sets": [
+                { "set": 1, "weight": 30, "reps": 12 },
+                { "set": 2, "weight": 30, "reps": 12 },
+                { "set": 3, "weight": 30, "reps": 12 }
+              ],
+              "reps": 12,
+              "weight": 30,
+              "notes": "Gunakan rentang gerak yang nyaman."
+            },
+            {
+              "name": "Tricep Pushdown",
+              "sets": [
+                { "set": 1, "weight": 30, "reps": 12 },
+                { "set": 2, "weight": 30, "reps": 12 },
+                { "set": 3, "weight": 30, "reps": 12 }
+              ],
+              "reps": 12,
+              "weight": 30,
+              "notes": "Jangan sampai gagal."
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": [
+                { "set": 1, "weight": 6, "reps": 12 },
+                { "set": 2, "weight": 6, "reps": 12 },
+                { "set": 3, "weight": 6, "reps": 12 }
+              ],
+              "reps": 12,
+              "weight": 6,
+              "notes": "Gerakan terkontrol."
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-09-10-easy-run",
+        "order": 2,
+        "scheduledDate": "2026-09-10",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "type": "Run",
+        "title": "Easy Run",
+        "description": "Kamis, 10 September. Lari ringan 4 km untuk kembali ke ritme latihan.",
+        "coachNotes": "Gunakan Hyperblast 2.1. RPE 3-4, pace kira-kira 6:45-7:20/km, dan harus masih bisa berbicara dalam kalimat penuh.",
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "run",
+          "distance": 4,
+          "duration": 30,
+          "intensity": "Easy",
+          "notes": "Jangan mengejar pace. Bila kaki terasa berat, perlambat atau selingi jalan singkat."
+        }
+      },
+      {
+        "id": "2026-09-11-pull",
+        "order": 3,
+        "scheduledDate": "2026-09-11",
+        "status": "pending",
+        "priority": "medium",
+        "isOptional": false,
+        "type": "Strength",
+        "title": "Pull",
+        "description": "Jumat, 11 September. Pull dengan teknik terkontrol dan tanpa set sampai gagal.",
+        "coachNotes": "Target RPE 7. Hindari tambahan latihan posterior chain agar kaki tetap segar untuk long run.",
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "strength",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": [
+                { "set": 1, "weight": 30, "reps": 10 },
+                { "set": 2, "weight": 32, "reps": 10 },
+                { "set": 3, "weight": 32, "reps": 10 }
+              ],
+              "reps": 10,
+              "weight": 32,
+              "notes": "Tarik dengan punggung dan kontrol fase turun."
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": [
+                { "set": 1, "weight": 40, "reps": 10 },
+                { "set": 2, "weight": 40, "reps": 10 },
+                { "set": 3, "weight": 40, "reps": 10 }
+              ],
+              "reps": 10,
+              "weight": 40,
+              "notes": "Jaga torso tetap stabil."
+            },
+            {
+              "name": "Face Pull",
+              "sets": [
+                { "set": 1, "weight": 36, "reps": 12 },
+                { "set": 2, "weight": 36, "reps": 12 },
+                { "set": 3, "weight": 36, "reps": 12 }
+              ],
+              "reps": 12,
+              "weight": 36,
+              "notes": "Fokus bahu belakang dan kontrol."
+            },
+            {
+              "name": "Incline Dumbbell Curl",
+              "sets": [
+                { "set": 1, "weight": 10, "reps": 10 },
+                { "set": 2, "weight": 10, "reps": 10 },
+                { "set": 3, "weight": 10, "reps": 10 }
+              ],
+              "reps": 10,
+              "weight": 10,
+              "notes": "Hindari ayunan."
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": [
+                { "set": 1, "weight": 12.5, "reps": 12 },
+                { "set": 2, "weight": 12.5, "reps": 12 },
+                { "set": 3, "weight": 12.5, "reps": 12 }
+              ],
+              "reps": 12,
+              "weight": 12.5,
+              "notes": "Sisakan 2-3 repetisi."
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-09-12-long-run",
+        "order": 4,
+        "scheduledDate": "2026-09-12",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "type": "Run",
+        "title": "Long Run",
+        "description": "Sabtu, 12 September. Long run ringan 5 km sebagai titik awal progres jarak.",
+        "coachNotes": "Gunakan Hyperblast 2.1. RPE 3-4, pace kira-kira 6:45-7:20/km. Prioritaskan napas dan langkah stabil, bukan kecepatan.",
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "run",
+          "distance": 5,
+          "duration": 38,
+          "intensity": "Long",
+          "notes": "Jangan melakukan fast finish. Berhenti bila muncul nyeri tajam atau cara berlari berubah."
+        }
+      },
+      {
+        "id": "2026-09-13-rest",
+        "order": 5,
+        "scheduledDate": "2026-09-13",
+        "status": "pending",
+        "priority": "high",
+        "isOptional": false,
+        "type": "Rest",
+        "title": "Rest",
+        "description": "Minggu, 13 September. Istirahat penuh.",
+        "coachNotes": "Jalan santai dan mobilitas ringan boleh dilakukan jika terasa nyaman.",
+        "completedAt": null,
+        "completedWorkoutId": null,
+        "prescription": {
+          "type": "rest"
+        }
+      }
+    ]
+  }
+}

@@ -1,5 +1,69 @@
 // ─── STREAK COMPUTATION ──────────────────────────────────────────────────────
 
+function parseLocalDate(dateString) {
+  if (!dateString) return null;
+  const date = new Date(`${dateString}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toLocalDateKey(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+export function getCurrentWeekRange(referenceDate = new Date()) {
+  const start = new Date(referenceDate);
+  start.setHours(0, 0, 0, 0);
+  const day = start.getDay();
+  start.setDate(start.getDate() - (day === 0 ? 6 : day - 1));
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+export function getWeeklyTrainingTracker(workouts, referenceDate = new Date()) {
+  const { start, end } = getCurrentWeekRange(referenceDate);
+  const actual = { Push: 0, Pull: 0, Legs: 0, Run: 0 };
+
+  (workouts || []).forEach(workout => {
+    const date = parseLocalDate(workout.date);
+    if (!date || date < start || date > end) return;
+
+    if (workout.type === 'Lari') {
+      actual.Run += 1;
+      return;
+    }
+
+    if (workout.type !== 'Gym') return;
+    const category = String(workout.category || '').trim().toLowerCase();
+    if (category === 'push') actual.Push += 1;
+    if (category === 'pull') actual.Pull += 1;
+    if (category === 'legs') actual.Legs += 1;
+  });
+
+  const targets = { Push: 1, Pull: 1, Legs: 1, Run: 2 };
+  const items = Object.entries(targets).map(([label, target]) => ({
+    key: label.toLowerCase(),
+    label,
+    target,
+    actual: actual[label],
+    completed: Math.min(actual[label], target),
+  }));
+
+  return {
+    start,
+    end,
+    items,
+    completed: items.reduce((sum, item) => sum + item.completed, 0),
+    target: items.reduce((sum, item) => sum + item.target, 0),
+  };
+}
+
 export function computeStreak(workouts) {
   if (!workouts || workouts.length === 0) return { current: 0, longest: 0 };
 
@@ -79,13 +143,9 @@ export function getWeeklyVolume(workouts, weeks = 12) {
   const now = new Date();
 
   for (let i = weeks - 1; i >= 0; i--) {
-    const weekStart = new Date(now);
-    weekStart.setHours(0, 0, 0, 0);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay() - (i * 7) + 1); // Monday
-
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
+    const weekReference = new Date(now);
+    weekReference.setDate(weekReference.getDate() - (i * 7));
+    const { start: weekStart, end: weekEnd } = getCurrentWeekRange(weekReference);
 
     const weekWorkouts = workouts.filter(w => {
       if (!w.date) return false;
@@ -114,7 +174,7 @@ export function getWeeklyVolume(workouts, weeks = 12) {
 
     result.push({
       week: label,
-      weekStart: weekStart.toISOString().split('T')[0],
+      weekStart: toLocalDateKey(weekStart),
       runKm: Math.round(runKm * 10) / 10,
       gymVolume: Math.round(gymVolume),
       gymSessions,
@@ -159,13 +219,7 @@ export function getCompletionRate(workouts, weeklyPlan) {
     return { rate: null, completed: 0, planned: 0, message: 'No plan set' };
   }
 
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setHours(0, 0, 0, 0);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
+  const { start: weekStart } = getCurrentWeekRange();
 
   const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 

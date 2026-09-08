@@ -1,4 +1,4 @@
-import React from 'react';
+import { Activity, Dumbbell, Trophy } from 'lucide-react';
 
 export default function PersonalRecords({ gymPRs, runningPBs }) {
   const hasGymData = gymPRs && gymPRs.length > 0;
@@ -6,43 +6,47 @@ export default function PersonalRecords({ gymPRs, runningPBs }) {
 
   if (!hasGymData && !hasRunningData) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Personal Records</h3>
-        <p className="text-xs text-gray-400">Log some workouts to see your PRs here!</p>
+      <div className="rounded-2xl border border-[#DCE3EA] bg-white p-4">
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-[#0F172A]">
+          <Trophy className="h-4 w-4 text-[#D97706]" /> Rekor pribadi
+        </h3>
+        <p className="text-xs text-[#64748B]">Catat latihan untuk mulai melihat rekor pribadimu.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">🏆 Personal Records</h3>
+    <div className="rounded-2xl border border-[#DCE3EA] bg-white p-4">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#0F172A]">
+        <Trophy className="h-4 w-4 text-[#D97706]" /> Rekor pribadi
+      </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Gym PRs */}
         {hasGymData && (
           <div>
-            <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-              🏋️ Gym
+            <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[#7C3AED]">
+              <Dumbbell className="h-3.5 w-3.5" /> Gym
             </h4>
             <div className="space-y-2">
               {gymPRs.map((pr, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                  className="flex items-center justify-between border-t border-[#E2E8F0] px-1 py-2.5 first:border-t-0"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                    <p className="truncate text-sm font-semibold text-[#0F172A]">
                       {pr.exercise}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-[#64748B]">
                       {pr.date || '—'}
                     </p>
                   </div>
                   <div className="text-right ml-3 flex-shrink-0">
-                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                    <p className="text-sm font-bold text-[#7C3AED]">
                       {pr.weight}kg × {pr.reps}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-[#64748B]">
                       {pr.volume} kg
                     </p>
                   </div>
@@ -55,18 +59,18 @@ export default function PersonalRecords({ gymPRs, runningPBs }) {
         {/* Running PBs */}
         {hasRunningData && (
           <div>
-            <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-              🏃 Running
+            <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[#0369A1]">
+              <Activity className="h-3.5 w-3.5" /> Lari
             </h4>
             <div className="space-y-2">
               {runningPBs.best5K && (
-                <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+                <div className="flex items-center justify-between border-t border-[#E2E8F0] px-1 py-2.5 first:border-t-0">
                   <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">5K Best</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{runningPBs.best5K.date}</p>
+                    <p className="text-sm font-semibold text-[#0F172A]">5K terbaik</p>
+                    <p className="text-xs text-[#64748B]">{runningPBs.best5K.date}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-green-600 dark:text-green-400">
+                    <p className="text-sm font-bold text-[#0369A1]">
                       {runningPBs.best5K.paceFormatted}
                     </p>
                   </div>
@@ -74,15 +78,15 @@ export default function PersonalRecords({ gymPRs, runningPBs }) {
               )}
 
               {runningPBs.bestPace && (
-                <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                <div className="flex items-center justify-between border-t border-[#E2E8F0] px-1 py-2.5 first:border-t-0">
                   <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Best Pace</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-semibold text-[#0F172A]">Pace terbaik</p>
+                    <p className="text-xs text-[#64748B]">
                       {runningPBs.bestPace.distance.toFixed(1)}km · {runningPBs.bestPace.date}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                    <p className="text-sm font-bold text-[#0369A1]">
                       {runningPBs.bestPace.paceFormatted}
                     </p>
                   </div>
@@ -90,13 +94,13 @@ export default function PersonalRecords({ gymPRs, runningPBs }) {
               )}
 
               {runningPBs.longest && (
-                <div className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                <div className="flex items-center justify-between border-t border-[#E2E8F0] px-1 py-2.5 first:border-t-0">
                   <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Longest Run</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{runningPBs.longest.date}</p>
+                    <p className="text-sm font-semibold text-[#0F172A]">Lari terjauh</p>
+                    <p className="text-xs text-[#64748B]">{runningPBs.longest.date}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                    <p className="text-sm font-bold text-[#0369A1]">
                       {runningPBs.longest.distance.toFixed(1)} km
                     </p>
                   </div>

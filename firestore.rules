@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid}/workouts/{workoutId} {
+      allow read, create, update, delete: if isOwner(uid);
+    }
+
+    match /users/{uid}/plan/{planId} {
+      allow read, create, update: if isOwner(uid) && planId == 'current';
+      allow delete: if false;
+    }
+
+    match /users/{uid}/trainingBlocks/{blockId} {
+      allow read, create, update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    match /users/{uid}/profile/{profileId} {
+      allow read, create, update: if isOwner(uid) && profileId == 'athlete';
+      allow delete: if false;
+    }
+  }
+}
