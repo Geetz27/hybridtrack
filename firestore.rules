@@ -20,6 +20,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Max 14 must match MAX_WEEKLY_TARGET in src/utils/weeklyTargets.js.
+    function isWeeklyTarget(value) {
+      return value is int && value >= 0 && value <= 14;
+    }
+
+    function isValidWeeklyTargets(data, weekStart) {
+      return data.keys().hasOnly(['weekStart', 'targets', 'updatedAt']) &&
+        data.weekStart == weekStart &&
+        data.targets is map &&
+        data.targets.keys().hasAll(['Push', 'Pull', 'Legs', 'Run']) &&
+        data.targets.keys().hasOnly(['Push', 'Pull', 'Legs', 'Run']) &&
+        isWeeklyTarget(data.targets.Push) && isWeeklyTarget(data.targets.Pull) &&
+        isWeeklyTarget(data.targets.Legs) && isWeeklyTarget(data.targets.Run);
+    }
+
+    match /users/{uid}/weeklyTargets/{weekStart} {
+      allow list: if isOwner(uid);
+      allow get, delete: if isOwner(uid) && weekStart.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+      allow create, update: if isOwner(uid) && weekStart.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        isValidWeeklyTargets(request.resource.data, weekStart);
+    }
+
     match /users/{uid}/profile/{profileId} {
       allow read, create, update: if isOwner(uid) && profileId == 'athlete';
       allow delete: if false;

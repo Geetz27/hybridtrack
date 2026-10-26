@@ -1,3 +1,5 @@
+import { resolveWeeklyTargets } from './weeklyTargets.js';
+
 // ─── STREAK COMPUTATION ──────────────────────────────────────────────────────
 
 function parseLocalDate(dateString) {
@@ -26,7 +28,7 @@ export function getCurrentWeekRange(referenceDate = new Date()) {
   return { start, end };
 }
 
-export function getWeeklyTrainingTracker(workouts, referenceDate = new Date()) {
+export function getWeeklyTrainingTracker(workouts, referenceDate = new Date(), customTargets = null) {
   const { start, end } = getCurrentWeekRange(referenceDate);
   const actual = { Push: 0, Pull: 0, Legs: 0, Run: 0 };
 
@@ -46,7 +48,7 @@ export function getWeeklyTrainingTracker(workouts, referenceDate = new Date()) {
     if (category === 'legs') actual.Legs += 1;
   });
 
-  const targets = { Push: 1, Pull: 1, Legs: 1, Run: 2 };
+  const { targets, isCustom } = resolveWeeklyTargets(customTargets);
   const items = Object.entries(targets).map(([label, target]) => ({
     key: label.toLowerCase(),
     label,
@@ -58,6 +60,8 @@ export function getWeeklyTrainingTracker(workouts, referenceDate = new Date()) {
   return {
     start,
     end,
+    weekStart: toLocalDateKey(start),
+    isCustom,
     items,
     completed: items.reduce((sum, item) => sum + item.completed, 0),
     target: items.reduce((sum, item) => sum + item.target, 0),

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "test:targets": "node --test tests/targets/*.test.js",
     "test:rules": "firebase emulators:exec --only firestore --project demo-hybridtrack \"node --test tests/firestore/firestore.rules.test.js\"",
     "preview": "vite preview"
   },

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import * as dashboardUtils from './utils/dashboard';
+import { getWeekStartKey, MAX_WEEKLY_TARGET, parseWeeklyTargetsInput, resolveWeeklyTargets, WEEKLY_TARGET_KEYS } from './utils/weeklyTargets';
 import { getPlannedSession, getNextSessionFromBlock, findPendingStrengthSession, findPendingRunSession } from './utils/planning';
 import { generateCoachInsight } from './utils/coachInsight';
 import { generateKnowledgeSnapshot } from './utils/knowledge';
@@ -917,6 +918,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [weeklyPlan, setWeeklyPlan] = useState(DEFAULT_WEEKLY_PLAN);
   const [activeTrainingBlock, setActiveTrainingBlock] = useState(null);
+  const [weeklyTargets, setWeeklyTargets] = useState({ byWeek: {}, status: 'loading' });
 
   // --- 3. AUTHENTICATION LISTENER ---
   useEffect(() => {
@@ -992,6 +994,28 @@ export default function App() {
     });
     return () => unsubscribe();
   }, [user]);
+
+  // --- 4E. FETCH CUSTOM WEEKLY TARGETS DARI FIRESTORE ---
+  useEffect(() => {
+    if (!user) return;
+    const weeklyTargetsRef = collection(db, 'users', user.uid, 'weeklyTargets');
+    const unsubscribe = onSnapshot(weeklyTargetsRef, (snapshot) => {
+      const byWeek = Object.fromEntries(snapshot.docs.map(item => [item.id, item.data().targets]));
+      setWeeklyTargets({ byWeek, status: 'ready' });
+    }, (error) => {
+      console.error("Error fetching weekly targets:", error);
+      setWeeklyTargets(current => ({ ...current, status: 'error' }));
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const saveWeeklyTargets = async (weekStart, targets) => {
+    if (!user) throw new Error('User is not authenticated');
+    const reference = doc(db, 'users', user.uid, 'weeklyTargets', weekStart);
+    // No document means the default targets, so a reset deletes instead of writing the defaults.
+    if (targets) await setDoc(reference, { weekStart, targets, updatedAt: serverTimestamp() });
+    else await deleteDoc(reference);
+  };
 
   // --- 4D. DERIVED EFFECTIVE PLAN (Training Block → WeeklyPlan shape) ---
   const effectivePlan = useMemo(() => {
@@ -1177,7 +1201,7 @@ export default function App() {
 
       {/* MAIN CONTENT */}
       <main className="max-w-md md:max-w-5xl mx-auto px-4 py-6 md:pt-14 space-y-6">
-        {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={effectivePlan} activeTrainingBlock={activeTrainingBlock} />}
+        {activeTab === 'dashboard' && <Dashboard workouts={workouts} weeklyPlan={effectivePlan} activeTrainingBlock={activeTrainingBlock} weeklyTargets={weeklyTargets} onSaveWeeklyTargets={saveWeeklyTargets} />}
         {activeTab === 'add' && (
           <QuickInput
             onAdd={handleAddData}
@@ -1434,7 +1458,9 @@ function formatTrackerWeek(start, end) {
   return `${startLabel} - ${endLabel}`;
 }
 
-function WeeklyTrainingTracker({ tracker }) {
+function WeeklyTrainingTracker({ tracker, weeklyTargets, onSaveWeeklyTargets }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [notice, setNotice] = useState('');
   const accents = {
     push: { bar: 'bg-[#8B5CF6]', text: 'text-[#7C3AED]' },
     pull: { bar: 'bg-[#14B8A6]', text: 'text-[#0F766E]' },
@@ -1445,24 +1471,42 @@ function WeeklyTrainingTracker({ tracker }) {
   return (
     <section className="rounded-2xl border border-[#DCE3EA] bg-white px-4 py-3 shadow-[0_10px_28px_rgba(51,65,85,0.07)]">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-black text-[#0F172A]">Target latihan mingguan</p>
-          <p className="mt-0.5 text-xs font-medium text-[#64748B]">Sen–Min · {formatTrackerWeek(tracker.start, tracker.end)}</p>
+          <p className="mt-0.5 text-xs font-medium text-[#64748B]">
+            Sen–Min · {formatTrackerWeek(tracker.start, tracker.end)}
+            {tracker.isCustom && <span className="font-bold text-[#0F766E]"> · target khusus</span>}
+          </p>
         </div>
-        <div className="rounded-lg bg-[#F5F3FF] p-2 text-[#7C3AED]">
-          <Target className="h-4 w-4" />
-        </div>
+        <button type="button" onClick={() => { setIsEditing(open => !open); setNotice(''); }}
+          aria-expanded={isEditing}
+          className="flex min-h-[44px] flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#CBD5E1] px-3 text-xs font-bold text-[#0F766E] transition-colors hover:bg-[#F0FDFA] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F766E]">
+          <Target className="h-4 w-4" aria-hidden="true" />
+          {isEditing ? 'Tutup' : 'Ubah target'}
+        </button>
       </div>
+
+      {weeklyTargets.status === 'loading' && (
+        <p className="mt-2 text-xs font-medium text-[#64748B]">Memuat target khusus...</p>
+      )}
+      {weeklyTargets.status === 'error' && (
+        <p role="alert" className="mt-2 text-xs font-semibold text-[#B45309]">
+          Target khusus gagal dimuat, sementara memakai default. Muat ulang halaman untuk mencoba lagi.
+        </p>
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
         {tracker.items.map(item => {
           const accent = accents[item.key];
-          const percent = (item.completed / item.target) * 100;
+          const percent = item.target > 0 ? (item.completed / item.target) * 100 : 0;
+          const progressLabel = item.target > 0
+            ? `${item.completed}/${item.target}`
+            : item.actual > 0 ? `${item.actual}x, target 0` : 'Libur';
           return (
             <div key={item.key}>
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className="font-bold text-[#334155]">{item.label}</span>
-                <span className={`font-black ${accent.text}`}>{item.completed}/{item.target}</span>
+                <span className={`font-black ${item.target > 0 ? accent.text : 'text-[#64748B]'}`}>{progressLabel}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-[#E2E8F0]">
                 <div className={`h-full rounded-full transition-all duration-500 ${accent.bar}`} style={{ width: `${percent}%` }} />
@@ -1475,7 +1519,108 @@ function WeeklyTrainingTracker({ tracker }) {
       <p className="mt-3 border-t border-[#E2E8F0] pt-2 text-xs font-bold text-[#0F172A]">
         Total <span className="text-[#0F766E]">{tracker.completed}/{tracker.target}</span> target tercapai
       </p>
+
+      {notice && !isEditing && (
+        <p role="status" className="mt-2 text-xs font-semibold text-[#0F766E]">{notice}</p>
+      )}
+
+      {isEditing && (
+        <WeeklyTargetsEditor
+          initialWeekStart={tracker.weekStart}
+          byWeek={weeklyTargets.byWeek}
+          onSave={onSaveWeeklyTargets}
+          onDone={message => { setIsEditing(false); setNotice(message); }}
+          onCancel={() => setIsEditing(false)}
+        />
+      )}
     </section>
+  );
+}
+
+function WeeklyTargetsEditor({ initialWeekStart, byWeek, onSave, onDone, onCancel }) {
+  const toFormValues = weekStart => Object.fromEntries(Object.entries(
+    resolveWeeklyTargets(byWeek[weekStart]).targets
+  ).map(([key, value]) => [key, String(value)]));
+  const [weekStart, setWeekStart] = useState(initialWeekStart);
+  const [values, setValues] = useState(() => toFormValues(initialWeekStart));
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const range = dashboardUtils.getCurrentWeekRange(new Date(`${weekStart}T00:00:00`));
+  const weekLabel = formatTrackerWeek(range.start, range.end);
+  const hasCustom = Boolean(byWeek[weekStart]);
+
+  const changeWeek = dateValue => {
+    if (!dateValue) return;
+    const nextWeekStart = getWeekStartKey(new Date(`${dateValue}T00:00:00`));
+    setWeekStart(nextWeekStart);
+    setValues(toFormValues(nextWeekStart));
+    setError('');
+  };
+
+  const persist = async targets => {
+    setIsSaving(true);
+    setError('');
+    try {
+      await onSave(weekStart, targets);
+      onDone(targets ? `Target ${weekLabel} tersimpan.` : `Target ${weekLabel} kembali ke default.`);
+    } catch (saveError) {
+      console.error('Gagal menyimpan target mingguan:', saveError);
+      setError('Target gagal disimpan. Periksa koneksi dan login, lalu coba lagi.');
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = event => {
+    event.preventDefault();
+    const parsed = parseWeeklyTargetsInput(values);
+    if (parsed.error) { setError(parsed.error); return; }
+    persist(parsed.targets);
+  };
+
+  const fieldCls = 'h-11 w-full rounded-lg border border-[#CBD5E1] bg-white px-3 text-sm font-bold text-[#0F172A] focus:border-[#0F766E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]/30';
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-3 space-y-3 border-t border-[#E2E8F0] pt-3">
+      <div>
+        <label htmlFor="weekly-target-week" className="mb-1 block text-xs font-bold text-[#334155]">Minggu</label>
+        <input id="weekly-target-week" type="date" value={weekStart} onChange={e => changeWeek(e.target.value)} className={fieldCls} />
+        <p className="mt-1 text-xs font-medium text-[#64748B]">
+          Sen–Min · {weekLabel} · {hasCustom ? 'target khusus tersimpan' : 'memakai default'}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {WEEKLY_TARGET_KEYS.map(key => (
+          <div key={key}>
+            <label htmlFor={`weekly-target-${key}`} className="mb-1 block text-xs font-bold text-[#334155]">{key}</label>
+            <input id={`weekly-target-${key}`} type="number" inputMode="numeric" min="0" max={MAX_WEEKLY_TARGET} step="1"
+              value={values[key]} onChange={e => { setValues(current => ({ ...current, [key]: e.target.value })); setError(''); }}
+              className={fieldCls} />
+          </div>
+        ))}
+      </div>
+      <p className="text-xs font-medium text-[#64748B]">Isi 0 untuk sesi yang sengaja dilewati, misalnya Legs saat deload atau race week.</p>
+
+      {error && <p role="alert" className="text-xs font-semibold text-[#B91C1C]">{error}</p>}
+
+      <div className="flex flex-wrap gap-2">
+        <button type="submit" disabled={isSaving}
+          className="min-h-[44px] flex-1 rounded-lg bg-[#0F766E] px-4 text-sm font-black text-white transition-colors hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F766E]">
+          {isSaving ? 'Menyimpan...' : 'Simpan target'}
+        </button>
+        {hasCustom && (
+          <button type="button" disabled={isSaving} onClick={() => persist(null)}
+            className="min-h-[44px] rounded-lg border border-[#CBD5E1] px-3 text-xs font-bold text-[#334155] transition-colors hover:bg-[#F8FAFC] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F766E]">
+            Kembali ke default
+          </button>
+        )}
+        <button type="button" disabled={isSaving} onClick={onCancel}
+          className="min-h-[44px] rounded-lg px-3 text-xs font-bold text-[#64748B] transition-colors hover:text-[#0F172A] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F766E]">
+          Batal
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -1671,11 +1816,11 @@ function NextSessionCard({ workouts, weeklyPlan, activeTrainingBlock }) {
   );
 }
 
-function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
+function Dashboard({ workouts, weeklyPlan, activeTrainingBlock, weeklyTargets, onSaveWeeklyTargets }) {
   const summary = getDashboardSummary(workouts, weeklyPlan);
   const strengthProgress = useMemo(() => getExerciseProgress(workouts), [workouts]);
   const runningProgress = useMemo(() => getRunningProgress(workouts), [workouts]);
-  const weeklyTracker = dashboardUtils.getWeeklyTrainingTracker(workouts);
+  const weeklyTracker = dashboardUtils.getWeeklyTrainingTracker(workouts, new Date(), weeklyTargets.byWeek[getWeekStartKey()]);
 
   // ─── MVP Dashboard Computations ──────────────────────────────────────────
   const weeklyVolume = useMemo(() => {
@@ -1710,7 +1855,7 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock }) {
       {/* ── Hero Section ── */}
       <DashboardHero summary={summary} />
 
-      <WeeklyTrainingTracker tracker={weeklyTracker} />
+      <WeeklyTrainingTracker tracker={weeklyTracker} weeklyTargets={weeklyTargets} onSaveWeeklyTargets={onSaveWeeklyTargets} />
 
       {/* ── Volume Trends ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  serverTimestamp,
   setDoc,
   updateDoc,
 } from 'firebase/firestore';
@@ -172,5 +173,51 @@ describe('Firestore ownership baseline', () => {
         fixture,
       ));
     }
+  });
+});
+
+describe('weekly targets', () => {
+  const weekStart = '2026-11-02';
+  const targetsPath = (uid, id = weekStart) => `users/${uid}/weeklyTargets/${id}`;
+  const raceWeek = { weekStart, targets: { Push: 1, Pull: 1, Legs: 0, Run: 3 } };
+
+  test('allows the owner to create, read, list, update, and delete a week', async () => {
+    const db = testEnvironment.authenticatedContext(USER_A).firestore();
+    const reference = doc(db, targetsPath(USER_A));
+    await assertSucceeds(setDoc(reference, { ...raceWeek, updatedAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(reference));
+    await assertSucceeds(getDocs(collection(db, `users/${USER_A}/weeklyTargets`)));
+    await assertSucceeds(setDoc(reference, { ...raceWeek, targets: { ...raceWeek.targets, Run: 2 } }));
+    await assertSucceeds(deleteDoc(reference));
+  });
+
+  test('rejects other users and unauthenticated access', async () => {
+    const ownerDb = testEnvironment.authenticatedContext(USER_B).firestore();
+    await assertSucceeds(setDoc(doc(ownerDb, targetsPath(USER_B)), raceWeek));
+
+    const otherDb = testEnvironment.authenticatedContext(USER_A).firestore();
+    await assertFails(getDoc(doc(otherDb, targetsPath(USER_B))));
+    await assertFails(getDocs(collection(otherDb, `users/${USER_B}/weeklyTargets`)));
+    await assertFails(setDoc(doc(otherDb, targetsPath(USER_B)), raceWeek));
+    await assertFails(deleteDoc(doc(otherDb, targetsPath(USER_B))));
+
+    const anonymousDb = testEnvironment.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(anonymousDb, targetsPath(USER_B))));
+    await assertFails(setDoc(doc(anonymousDb, targetsPath(USER_A)), raceWeek));
+  });
+
+  test('rejects invalid target values and shapes', async () => {
+    const db = testEnvironment.authenticatedContext(USER_A).firestore();
+    const reference = doc(db, targetsPath(USER_A));
+    const withTargets = targets => ({ weekStart, targets: { ...raceWeek.targets, ...targets } });
+    await assertFails(setDoc(reference, withTargets({ Legs: -1 })));
+    await assertFails(setDoc(reference, withTargets({ Run: 15 })));
+    await assertFails(setDoc(reference, withTargets({ Run: 2.5 })));
+    await assertFails(setDoc(reference, withTargets({ Push: '1' })));
+    await assertFails(setDoc(reference, withTargets({ Upper: 1 })));
+    await assertFails(setDoc(reference, { weekStart, targets: { Push: 1, Pull: 1, Run: 3 } }));
+    await assertFails(setDoc(reference, { ...raceWeek, note: 'extra field' }));
+    await assertFails(setDoc(reference, { ...raceWeek, weekStart: '2026-11-09' }));
+    await assertFails(setDoc(doc(db, targetsPath(USER_A, 'next-week')), { ...raceWeek, weekStart: 'next-week' }));
   });
 });
