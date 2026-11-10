@@ -12,6 +12,10 @@ import { getAISettings, saveAISettings } from './services/settings/settingsStore
 import { loadAthleteProfile, saveAthleteProfile } from './services/profile/athleteProfileService';
 import AthleteProfileModal from './components/coach/AthleteProfileModal';
 import AiSettingsModal from './components/coach/AiSettingsModal';
+import FuelingPlanSection from './components/fueling/FuelingPlanSection';
+import FuelingReviewFields from './components/fueling/FuelingReviewFields';
+import { getFuelingPlan } from './data/fuelingPlan';
+import { createFuelingReview, sanitizeFuelingReview } from './utils/fuelingReview';
 import { 
   Activity, Dumbbell, Flame, PlusCircle, List, 
   CheckCircle2, Timer, Heart, CalendarDays, TrendingUp,
@@ -375,6 +379,7 @@ function ActiveTrainingBlockProgram({ activeTrainingBlock, onShowLegacy }) {
           {datedSessions.map(({ session, dateKey }, index) => {
             const status = getTrainingSessionStatus(session, dateKey);
             const StatusIcon = status.icon;
+            const fuelingPlan = getFuelingPlan(dateKey, session.type);
             const exercises = Array.isArray(session.prescription?.exercises)
               ? session.prescription.exercises
               : [];
@@ -403,6 +408,9 @@ function ActiveTrainingBlockProgram({ activeTrainingBlock, onShowLegacy }) {
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-[#64748B]">{getTrainingPrescriptionSummary(session)}</p>
+                    {fuelingPlan?.preview && (
+                      <p className="mt-1 truncate text-[10px] font-semibold text-[#0F766E]">{fuelingPlan.preview}</p>
+                    )}
                   </div>
 
                   <ChevronDown className="h-5 w-5 text-[#64748B] transition-transform group-open:rotate-180" />
@@ -450,6 +458,8 @@ function ActiveTrainingBlockProgram({ activeTrainingBlock, onShowLegacy }) {
                       <p className="mt-1 text-xs leading-5 text-[#475569]">{session.coachNotes}</p>
                     </div>
                   )}
+
+                  <FuelingPlanSection dateKey={dateKey} sessionType={session.type} />
                 </div>
               </details>
             );
@@ -2506,6 +2516,7 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
   const [cadence, setCadence] = useState('');
   const [runRpe, setRunRpe] = useState('5');
   const [planStatus, setPlanStatus] = useState('Sesuai Plan');
+  const [fuelingReview, setFuelingReview] = useState(() => createFuelingReview());
 
   const [gymCat, setGymCat] = useState('Push');
   const [gymRpe, setGymRpe] = useState('7');
@@ -2630,7 +2641,13 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
     if (type === 'Lari') {
       const d = parseFloat(dist), m = parseInt(dur);
       const pace = (d > 0 && m > 0) ? parseFloat((m / d).toFixed(4)) : null;
-      onAdd({ type, category: runCat, date, distance: d, duration: m, hr: parseInt(hr)||null, cadence: parseInt(cadence)||null, rpe: parseInt(runRpe), notes, planStatus, pace });
+      const savedFuelingReview = sanitizeFuelingReview(fuelingReview);
+      onAdd({
+        type, category: runCat, date, distance: d, duration: m,
+        hr: parseInt(hr)||null, cadence: parseInt(cadence)||null,
+        rpe: parseInt(runRpe), notes, planStatus, pace,
+        ...(savedFuelingReview ? { fuelingReview: savedFuelingReview } : {}),
+      });
     } else if (type === 'Gym') {
       const validExercises = gymExercises
         .filter(e => e.exercise && e.sets.some(s => s.weight && s.reps))
@@ -2734,6 +2751,7 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
             )}
             <SelectField label="Status Eksekusi" value={planStatus} onChange={e=>setPlanStatus(e.target.value)} options={['Sesuai Plan', 'Terlalu Berat', 'Terlalu Ringan', 'Missed Plan']} activeColor={typeConfig[type].border} />
             <SliderField label="RPE (Kesulitan)" value={runRpe} onChange={e=>setRunRpe(e.target.value)} accentColor="accent-[#2563EB]" />
+            <FuelingReviewFields value={fuelingReview} onChange={setFuelingReview} />
           </div>
         )}
 
@@ -3484,6 +3502,7 @@ function History({ workouts, onDelete, onEdit }) {
         const Icon = style.icon;
         const isGymSession = w.type === 'Gym' && w.exercises && w.exercises.length > 0;
         const isOpen = expanded[w.id];
+        const fuelingPreview = w.type === 'Lari' ? getFuelingPlan(w.date, 'Lari')?.preview : '';
 
         return (
           <div key={w.id} className={`bg-white border ${style.border} rounded-3xl overflow-hidden`}>
@@ -3505,6 +3524,9 @@ function History({ workouts, onDelete, onEdit }) {
                 <p className="text-[10px] text-[#64748B]">
                   {w.type !== 'Recovery' ? `RPE: ${w.rpe}` : `Fatigue: ${w.fatigue}`}
                 </p>
+                {fuelingPreview && (
+                  <p className="mt-0.5 truncate text-[10px] font-semibold text-[#0F766E]">{fuelingPreview}</p>
+                )}
                 {/* HR Zone badge for runs */}
                 {w.type === 'Lari' && w.hr && (() => { const z = getHRZone(w.hr); return z ? <span className={`inline-flex items-center text-[8px] font-bold px-1.5 py-0.5 rounded-full border mt-0.5 ${z.color}`}>{z.zone} · {z.label} · {w.hr}bpm</span> : null; })()}
               </div>
@@ -4061,6 +4083,7 @@ function EditModal({ workout, onClose, onSave }) {
   const [runRpe, setRunRpe]     = useState(workout.rpe?.toString() || '5');
   const [runCat, setRunCat]     = useState(workout.category || 'Easy Run');
   const [planStatus, setPlanStatus] = useState(workout.planStatus || 'Sesuai Plan');
+  const [fuelingReview, setFuelingReview] = useState(() => createFuelingReview(workout.fuelingReview));
 
   // Gym
   const gymSchema = workout.type === 'Gym' ? getGymSchema(workout) : null;
@@ -4116,7 +4139,12 @@ function EditModal({ workout, onClose, onSave }) {
     if (workout.type === 'Lari') {
       const d = parseFloat(dist), m = parseInt(dur);
       const pace = (d > 0 && m > 0) ? parseFloat((m / d).toFixed(4)) : null;
-      updated = { date, notes, category: runCat, distance: d, duration: m, hr: parseInt(hr)||null, cadence: parseInt(cadence)||null, rpe: parseInt(runRpe), planStatus, pace };
+      updated = {
+        date, notes, category: runCat, distance: d, duration: m,
+        hr: parseInt(hr)||null, cadence: parseInt(cadence)||null,
+        rpe: parseInt(runRpe), planStatus, pace,
+        fuelingReview: sanitizeFuelingReview(fuelingReview),
+      };
     } else if (workout.type === 'Gym') {
       const rpe = parseInt(gymRpe);
       const hasValidSet = set =>
@@ -4241,6 +4269,7 @@ function EditModal({ workout, onClose, onSave }) {
                   {['Sesuai Plan','Terlalu Berat','Terlalu Ringan','Missed Plan'].map(o=><option key={o}>{o}</option>)}
                 </select>
               </div>
+              <FuelingReviewFields value={fuelingReview} onChange={setFuelingReview} />
             </div>
           )}
 

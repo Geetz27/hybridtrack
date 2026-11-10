@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import {
   assertFails,
@@ -173,6 +174,30 @@ describe('Firestore ownership baseline', () => {
         fixture,
       ));
     }
+  });
+
+  test('fueling review survives a fresh Firestore context like a page refresh', async () => {
+    const beforeRefresh = testEnvironment.authenticatedContext(USER_A).firestore();
+    const reference = doc(beforeRefresh, workoutPath(USER_A));
+    const fuelingReview = {
+      gelType: 'EJ Sport',
+      gelAmount: '1 sachet',
+      waterMl: 350,
+      sportsDrinkType: '',
+      sportsDrinkMl: null,
+      stomachResponse: 'OK',
+      energy: 4,
+      notes: 'Nyaman sampai selesai',
+    };
+
+    await assertSucceeds(setDoc(reference, { ...workout, notes: 'Completed workout stays intact' }));
+    await assertSucceeds(setDoc(reference, { fuelingReview }, { merge: true }));
+
+    const afterRefresh = testEnvironment.authenticatedContext(USER_A).firestore();
+    const restored = await assertSucceeds(getDoc(doc(afterRefresh, workoutPath(USER_A))));
+    assert.deepEqual(restored.data().fuelingReview, fuelingReview);
+    assert.equal(restored.data().distance, workout.distance);
+    assert.equal(restored.data().notes, 'Completed workout stays intact');
   });
 });
 

@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test:targets": "node --test tests/targets/*.test.js",
     "test:calendar": "node --test tests/calendar/*.test.js",
+    "test:fueling": "node --test tests/fueling/*.test.js",
     "test:rules": "firebase emulators:exec --only firestore --project demo-hybridtrack \"node --test tests/firestore/firestore.rules.test.js\"",
     "preview": "vite preview"
   },
