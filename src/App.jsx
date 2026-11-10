@@ -240,10 +240,10 @@ const DAY_LABELS = { monday:'Senin', tuesday:'Selasa', wednesday:'Rabu', thursda
 const DAY_SHORT = { monday:'Sen', tuesday:'Sel', wednesday:'Rab', thursday:'Kam', friday:'Jum', saturday:'Sab', sunday:'Min' };
 
 const SESSION_COLORS = {
-  Push:         { bg:'bg-[#FFFFFF]', border:'border-[#CBD5E1]/50', text:'text-[#14B8A6]', badge:'bg-[#8B5CF6]/30 text-[#0F172A]', dot:'bg-[#8B5CF6]' },
-  Pull:         { bg:'bg-[#14B8A6]/12', border:'border-[#14B8A6]/40', text:'text-[#14B8A6]', badge:'bg-[#14B8A6]/20 text-[#14B8A6]', dot:'bg-[#14B8A6]' },
-  Legs:         { bg:'bg-[#FFFFFF]', border:'border-[#99F6E4]/35', text:'text-[#14B8A6]', badge:'bg-[#99F6E4]/15 text-[#14B8A6]', dot:'bg-[#99F6E4]' },
-  'Easy Run':   { bg:'bg-[#14B8A6]/10', border:'border-[#14B8A6]/30', text:'text-[#14B8A6]', badge:'bg-[#14B8A6]/15 text-[#14B8A6]', dot:'bg-[#14B8A6]' },
+  Push:         { bg:'bg-[#FFFFFF]', border:'border-[#CBD5E1]/50', text:'text-[#2563EB]', badge:'bg-[#8B5CF6]/30 text-[#0F172A]', dot:'bg-[#8B5CF6]' },
+  Pull:         { bg:'bg-[#2563EB]/12', border:'border-[#2563EB]/40', text:'text-[#2563EB]', badge:'bg-[#2563EB]/20 text-[#2563EB]', dot:'bg-[#2563EB]' },
+  Legs:         { bg:'bg-[#FFFFFF]', border:'border-[#BFDBFE]/35', text:'text-[#2563EB]', badge:'bg-[#BFDBFE]/15 text-[#2563EB]', dot:'bg-[#BFDBFE]' },
+  'Easy Run':   { bg:'bg-[#2563EB]/10', border:'border-[#2563EB]/30', text:'text-[#2563EB]', badge:'bg-[#2563EB]/15 text-[#2563EB]', dot:'bg-[#2563EB]' },
   'Quality Run':{ bg:'bg-[#c76360]/12', border:'border-[#c76360]/35', text:'text-[#d07573]', badge:'bg-[#c76360]/15 text-[#e8a8a6]', dot:'bg-[#c76360]' },
   Rest:         { bg:'bg-[#FFFFFF]', border:'border-[#CBD5E1]/25', text:'text-[#64748B]', badge:'bg-[#FFFFFF] text-[#64748B]', dot:'bg-[#2d3f72]' },
 };
@@ -317,7 +317,7 @@ function getTrainingPrescriptionSummary(session) {
 
 function getTrainingSessionStatus(session, dateKey) {
   if (session.status === 'completed') {
-    return { label: 'Selesai', className: 'text-[#0F766E]', icon: CheckCircle2 };
+    return { label: 'Selesai', className: 'text-[#1D4ED8]', icon: CheckCircle2 };
   }
   if (session.status === 'skipped') {
     return { label: 'Dilewati', className: 'text-[#B45309]', icon: X };
@@ -325,7 +325,7 @@ function getTrainingSessionStatus(session, dateKey) {
 
   const todayKey = toTrainingBlockDateKey(new Date());
   if (dateKey === todayKey) {
-    return { label: 'Hari ini', className: 'text-[#0F766E]', icon: Clock };
+    return { label: 'Hari ini', className: 'text-[#1D4ED8]', icon: Clock };
   }
   if (dateKey && dateKey < todayKey) {
     return { label: 'Belum selesai', className: 'text-[#B45309]', icon: Clock };
@@ -352,7 +352,7 @@ function ActiveTrainingBlockProgram({ activeTrainingBlock, onShowLegacy }) {
     <div className="animate-in fade-in overflow-hidden rounded-[28px] border border-[#DCE3EA] bg-[#F8FAFC] shadow-[0_20px_50px_rgba(17,24,39,0.06)]">
       <header className="flex flex-col gap-3 border-b border-[#DCE3EA] bg-white px-4 py-4 sm:flex-row sm:items-start sm:justify-between md:px-5">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[#0F766E]">
+          <div className="flex items-center gap-2 text-[#1D4ED8]">
             <ClipboardList className="h-5 w-5 flex-shrink-0" />
             <span className="text-xs font-bold uppercase">Program aktif</span>
           </div>
@@ -363,7 +363,7 @@ function ActiveTrainingBlockProgram({ activeTrainingBlock, onShowLegacy }) {
         <button
           type="button"
           onClick={onShowLegacy}
-          className="inline-flex min-h-11 flex-shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-[#CBD5E1] bg-white px-3 text-xs font-bold text-[#334155] transition-colors hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]"
+          className="inline-flex min-h-11 flex-shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-[#CBD5E1] bg-white px-3 text-xs font-bold text-[#334155] transition-colors hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
         >
           <List className="h-4 w-4" />
           Plan Lama
@@ -381,7 +381,7 @@ function ActiveTrainingBlockProgram({ activeTrainingBlock, onShowLegacy }) {
 
             return (
               <details key={session.id || index} className="group">
-                <summary className="grid min-h-[72px] cursor-pointer list-none grid-cols-[64px_minmax(0,1fr)_24px] items-center gap-3 px-4 py-3 transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#14B8A6] [&::-webkit-details-marker]:hidden md:px-5">
+                <summary className="grid min-h-[72px] cursor-pointer list-none grid-cols-[64px_minmax(0,1fr)_24px] items-center gap-3 px-4 py-3 transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2563EB] [&::-webkit-details-marker]:hidden md:px-5">
                   <div className="border-r border-[#DCE3EA] pr-3 text-center">
                     <p className="text-[10px] font-bold uppercase text-[#64748B]">
                       {dateKey ? formatTrainingBlockDate(dateKey).split(',')[0] : `Sesi ${index + 1}`}
@@ -445,8 +445,8 @@ function ActiveTrainingBlockProgram({ activeTrainingBlock, onShowLegacy }) {
                   )}
 
                   {session.coachNotes && (
-                    <div className="mt-4 border-l-2 border-[#14B8A6] pl-3">
-                      <p className="text-[10px] font-bold uppercase text-[#0F766E]">Catatan latihan</p>
+                    <div className="mt-4 border-l-2 border-[#2563EB] pl-3">
+                      <p className="text-[10px] font-bold uppercase text-[#1D4ED8]">Catatan latihan</p>
                       <p className="mt-1 text-xs leading-5 text-[#475569]">{session.coachNotes}</p>
                     </div>
                   )}
@@ -608,7 +608,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-[#0F172A] flex items-center">
-          <ClipboardList className="w-5 h-5 mr-2 text-[#14B8A6]"/>
+          <ClipboardList className="w-5 h-5 mr-2 text-[#2563EB]"/>
           Program Mingguan
         </h2>
 
@@ -617,7 +617,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
             <button
               type="button"
               onClick={() => setShowLegacyPlan(false)}
-              className="flex min-h-11 items-center gap-1 rounded-lg border border-[#99F6E4] bg-[#ECFDF5] px-2.5 text-xs font-bold text-[#0F766E] transition-colors hover:bg-[#CCFBF1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]"
+              className="flex min-h-11 items-center gap-1 rounded-lg border border-[#BFDBFE] bg-[#ECFDF5] px-2.5 text-xs font-bold text-[#1D4ED8] transition-colors hover:bg-[#DBEAFE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
             >
               <ClipboardList className="h-3.5 w-3.5" /> Blok Aktif
             </button>
@@ -629,7 +629,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
             onClick={() => { setShowImport(true); setImportError(''); setImportText(''); }}
             aria-label="Impor plan lama"
             title="Impor plan lama"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#ECFDF5] hover:bg-[#99F6E4] border border-[#CBD5E1] rounded-lg text-[#14B8A6] text-xs font-bold transition-colors shadow-sm"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#ECFDF5] hover:bg-[#BFDBFE] border border-[#CBD5E1] rounded-lg text-[#2563EB] text-xs font-bold transition-colors shadow-sm"
           >
             <Plus className="w-3 h-3"/> Plan Lama
           </button>
@@ -658,7 +658,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
               onChange={e => { setImportText(e.target.value); setImportError(''); }}
               rows={8}
               placeholder={'{ "weekStart": "2026-05-11", "weekEnd": "2026-05-17", "label": "...", "days": { ... } }'}
-              className="w-full bg-[#fbfcfe] border border-[#CBD5E1] rounded-3xl px-3 py-2.5 text-xs text-[#0F172A] font-mono focus:border-[#14B8A6] outline-none resize-none leading-relaxed"
+              className="w-full bg-[#fbfcfe] border border-[#CBD5E1] rounded-3xl px-3 py-2.5 text-xs text-[#0F172A] font-mono focus:border-[#2563EB] outline-none resize-none leading-relaxed"
             />
             {importError && (
               <p className="text-xs text-[#d92d20] flex items-center gap-1.5">
@@ -698,14 +698,14 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
                     : 'border-[#CBD5E1] bg-white/80 hover:border-[#cfd4dc] shadow-sm'
               }`}
             >
-              <span className={`text-[9px] font-bold uppercase tracking-wider mb-1.5 ${isToday ? 'text-[#14B8A6]' : 'text-[#64748B]'}`}>
+              <span className={`text-[9px] font-bold uppercase tracking-wider mb-1.5 ${isToday ? 'text-[#2563EB]' : 'text-[#64748B]'}`}>
                 {DAY_SHORT[dk]}
               </span>
               <div className={`w-2.5 h-2.5 rounded-full mb-1.5 ${sc.dot}`}/>
               <span className={`text-[8px] font-bold leading-tight text-center ${isToday ? 'text-[#0F172A]' : 'text-[#0F172A]'}`}>
                 {(d.sessionName || '').split(' ')[0]}
               </span>
-              {isToday && <span className="text-[7px] text-[#14B8A6] font-black mt-0.5">HARI INI</span>}
+              {isToday && <span className="text-[7px] text-[#2563EB] font-black mt-0.5">HARI INI</span>}
             </button>
           );
         })}
@@ -767,7 +767,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
               </div>
               <div className="flex flex-col items-center bg-[#FFFFFF] border border-[#DCE3EA] rounded-3xl px-3 py-2.5 min-w-[52px] shadow-sm">
                 <span className="text-[8px] text-[#64748B] uppercase font-bold">Pace</span>
-                <span className="text-sm font-black text-[#14B8A6]">{dayData.runTarget.pace || '–'}/km</span>
+                <span className="text-sm font-black text-[#2563EB]">{dayData.runTarget.pace || '–'}/km</span>
               </div>
               <div className="flex flex-col items-center bg-[#FFFFFF] border border-[#DCE3EA] rounded-3xl px-3 py-2.5 min-w-[52px] shadow-sm">
                 <span className="text-[8px] text-[#64748B] uppercase font-bold">Effort</span>
@@ -799,7 +799,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
                 </span>
               )}
               {saveStatus === 'saved' && (
-                <span className="text-[10px] text-[#14B8A6] font-bold">
+                <span className="text-[10px] text-[#2563EB] font-bold">
                   ✓ Tersimpan
                 </span>
               )}
@@ -823,7 +823,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
                     <input
                       value={ex.name}
                       onChange={e => { const d = JSON.parse(JSON.stringify(editDraft)); d.exercises[exIdx].name = e.target.value; setEditDraft(d); }}
-                      className="flex-1 bg-white border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-sm text-[#0F172A] font-bold focus:border-[#14B8A6] outline-none"
+                      className="flex-1 bg-white border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-sm text-[#0F172A] font-bold focus:border-[#2563EB] outline-none"
                       placeholder="Nama gerakan"
                     />
                     <button onClick={() => removeExercise(exIdx)} className="p-1.5 text-[#64748B] hover:text-[#e11d48] rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
@@ -836,14 +836,14 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
                           type="number"
                           value={s.weight}
                           onChange={e => updateSetField(exIdx, sIdx, 'weight', e.target.value)}
-                          className="w-full bg-[#FFFFFF] border border-[#CBD5E1] rounded px-1 py-0.5 text-xs text-center text-[#0F172A] font-bold mb-1 focus:border-[#14B8A6] outline-none"
+                          className="w-full bg-[#FFFFFF] border border-[#CBD5E1] rounded px-1 py-0.5 text-xs text-center text-[#0F172A] font-bold mb-1 focus:border-[#2563EB] outline-none"
                           placeholder="kg"
                         />
                         <input
                           type="number"
                           value={s.reps}
                           onChange={e => updateSetField(exIdx, sIdx, 'reps', e.target.value)}
-                          className="w-full bg-[#FFFFFF] border border-[#CBD5E1] rounded px-1 py-0.5 text-xs text-center text-[#0F172A] font-bold focus:border-[#14B8A6] outline-none"
+                          className="w-full bg-[#FFFFFF] border border-[#CBD5E1] rounded px-1 py-0.5 text-xs text-center text-[#0F172A] font-bold focus:border-[#2563EB] outline-none"
                           placeholder="reps"
                         />
                       </div>
@@ -864,19 +864,19 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
                 <label className="text-[9px] text-[#64748B] uppercase font-bold block mb-1">Jarak (km)</label>
                 <input type="number" value={editDraft.runTarget.distance}
                   onChange={e => { const d=JSON.parse(JSON.stringify(editDraft)); d.runTarget.distance=parseFloat(e.target.value)||0; setEditDraft(d); }}
-                  className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:border-[#14B8A6] outline-none" />
+                  className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:border-[#2563EB] outline-none" />
               </div>
               <div>
                 <label className="text-[9px] text-[#64748B] uppercase font-bold block mb-1">Target Pace (/km)</label>
                 <input value={editDraft.runTarget.pace||''}
                   onChange={e => { const d=JSON.parse(JSON.stringify(editDraft)); d.runTarget.pace=e.target.value; setEditDraft(d); }}
-                  className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:border-[#14B8A6] outline-none" placeholder="e.g. 6:30" />
+                  className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:border-[#2563EB] outline-none" placeholder="e.g. 6:30" />
               </div>
               <div>
                 <label className="text-[9px] text-[#64748B] uppercase font-bold block mb-1">Effort</label>
                 <select value={editDraft.runTarget.effort}
                   onChange={e => { const d=JSON.parse(JSON.stringify(editDraft)); d.runTarget.effort=e.target.value; setEditDraft(d); }}
-                  className="w-full bg-white border border-[#CBD5E1] rounded-xl px-2 py-2 text-sm text-[#0F172A] font-bold focus:border-[#14B8A6] outline-none">
+                  className="w-full bg-white border border-[#CBD5E1] rounded-xl px-2 py-2 text-sm text-[#0F172A] font-bold focus:border-[#2563EB] outline-none">
                   <option value="easy">Easy</option>
                   <option value="tempo">Tempo</option>
                   <option value="interval">Interval</option>
@@ -886,7 +886,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
                 <label className="text-[9px] text-[#64748B] uppercase font-bold block mb-1">RPE</label>
                 <input value={editDraft.runTarget.rpe}
                   onChange={e => { const d=JSON.parse(JSON.stringify(editDraft)); d.runTarget.rpe=e.target.value; setEditDraft(d); }}
-                  className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:border-[#14B8A6] outline-none" placeholder="e.g. 4-5" />
+                  className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:border-[#2563EB] outline-none" placeholder="e.g. 4-5" />
               </div>
             </div>
           )}
@@ -896,7 +896,7 @@ function WeeklyPlanTab({ weeklyPlan, setWeeklyPlan, workouts, user, activeTraini
             <label className="text-[9px] text-[#64748B] uppercase font-bold block mb-1">Catatan Coach</label>
             <input value={editDraft.notes||''}
               onChange={e => { const d=JSON.parse(JSON.stringify(editDraft)); d.notes=e.target.value; setEditDraft(d); }}
-              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] focus:border-[#14B8A6] outline-none"
+              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] focus:border-[#2563EB] outline-none"
               placeholder="Catatan untuk sesi ini..." />
           </div>
         </div>
@@ -1138,8 +1138,8 @@ export default function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F5F7F9] flex flex-col items-center justify-center space-y-4">
-        <div className="rounded-2xl border border-[#99F6E4] bg-[#ECFDF5] p-4">
-          <Flame className="h-10 w-10 animate-pulse text-[#0F766E]" />
+        <div className="rounded-2xl border border-[#BFDBFE] bg-[#ECFDF5] p-4">
+          <Flame className="h-10 w-10 animate-pulse text-[#1D4ED8]" />
         </div>
         <p className="text-sm font-bold text-[#475569]">Memuat HybridTrack...</p>
       </div>
@@ -1151,11 +1151,11 @@ export default function App() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#F5F7F9] p-6 text-center">
         <div className="flex flex-col items-center">
-          <div className="mb-5 rounded-2xl border border-[#99F6E4] bg-[#ECFDF5] p-4">
-            <Flame className="h-12 w-12 text-[#0F766E]" />
+          <div className="mb-5 rounded-2xl border border-[#BFDBFE] bg-[#ECFDF5] p-4">
+            <Flame className="h-12 w-12 text-[#1D4ED8]" />
           </div>
           <h1 className="mb-2 text-4xl font-black text-[#0F172A]">
-            <span className="text-[#0F766E]">Hybrid</span>Track
+            <span className="text-[#1D4ED8]">Hybrid</span>Track
           </h1>
           <p className="mb-8 max-w-sm text-sm leading-relaxed text-[#475569]">Catat latihan lari dan gym, pantau progres, dan siapkan ulasan mingguan.</p>
           <button 
@@ -1172,17 +1172,17 @@ export default function App() {
 
   // --- TAMPILAN APLIKASI UTAMA ---
   return (
-    <div className="min-h-screen bg-[#F5F7F9] text-[#0F172A] font-sans selection:bg-[#99F6E4]/30 pb-28 md:pb-0">
+    <div className="min-h-screen bg-[#F5F7F9] text-[#0F172A] font-sans selection:bg-[#BFDBFE]/30 pb-28 md:pb-0">
 
       {/* HEADER */}
       <header className="bg-[#F5F7F9]/95 backdrop-blur-md border-b border-[#CBD5E1]/50 sticky top-0 z-40">
         <div className="max-w-md md:max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#99F6E4]/20 to-[#5a90b8]/20">
-              <Flame className="w-5 h-5 text-[#14B8A6]" />
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#BFDBFE]/20 to-[#5a90b8]/20">
+              <Flame className="w-5 h-5 text-[#2563EB]" />
             </div>
             <h1 className="text-xl font-black tracking-tight hidden sm:block">
-              <span className="bg-gradient-to-r from-[#99F6E4] to-[#14B8A6] bg-clip-text text-transparent">Hybrid</span>
+              <span className="bg-gradient-to-r from-[#BFDBFE] to-[#2563EB] bg-clip-text text-transparent">Hybrid</span>
               <span className="bg-gradient-to-r from-[#5a90b8] to-[#64748B] bg-clip-text text-transparent">Track</span>
             </h1>
           </div>
@@ -1199,12 +1199,12 @@ export default function App() {
           </div>
         </div>
         {/* Gradient line at bottom of header */}
-        <div className="h-px bg-gradient-to-r from-[#8B5CF6] via-[#99F6E4] to-[#14B8A6]" />
+        <div className="h-px bg-gradient-to-r from-[#8B5CF6] via-[#BFDBFE] to-[#2563EB]" />
       </header>
 
       {/* TOAST NOTIF */}
       {showToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] text-[#05131c] px-5 py-3 rounded-full flex items-center shadow-2xl shadow-[rgba(17,24,39,0.08)] animate-in slide-in-from-top-5 w-11/12 max-w-sm justify-center">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-[#2563EB] to-[#BFDBFE] text-[#05131c] px-5 py-3 rounded-full flex items-center shadow-2xl shadow-[rgba(17,24,39,0.08)] animate-in slide-in-from-top-5 w-11/12 max-w-sm justify-center">
           <CheckCircle2 className="w-5 h-5 mr-2 flex-shrink-0" />
           <span className="font-bold text-sm truncate">Data berhasil disimpan.</span>
         </div>
@@ -1266,12 +1266,12 @@ function NavButton({ icon, label, isActive, onClick, highlight }) {
     <button
       onClick={onClick}
       className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-all duration-200
-        ${isActive ? 'text-[#14B8A6]' : 'text-[#64748B] hover:text-[#0F172A]'}
+        ${isActive ? 'text-[#2563EB]' : 'text-[#64748B] hover:text-[#0F172A]'}
         ${highlight ? '' : ''}
       `}
     >
       <div className={`
-        ${highlight ? 'bg-[#14B8A6] text-white p-2.5 rounded-3xl shadow-md shadow-[rgba(20,184,166,0.22)] active:scale-95 transition-transform' : 'p-1'}
+        ${highlight ? 'bg-[#2563EB] text-white p-2.5 rounded-3xl shadow-md shadow-[rgba(20,184,166,0.22)] active:scale-95 transition-transform' : 'p-1'}
         
       `}>
         {React.cloneElement(icon, { className: 'w-5 h-5' })}
@@ -1422,7 +1422,7 @@ function formatDashboardTime(minutes) {
   return `${wholeMinutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function MiniTrend({ points, color = '#14B8A6', invert = false }) {
+function MiniTrend({ points, color = '#2563EB', invert = false }) {
   const values = points.map(point => point.value ?? point.weight).filter(Number.isFinite);
   if (values.length < 2) return null;
   const min = Math.min(...values);
@@ -1445,7 +1445,7 @@ function MiniTrend({ points, color = '#14B8A6', invert = false }) {
 function DashboardHero({ summary }) {
   return (
     <section className="rounded-2xl border border-[#DCE3EA] bg-white p-4 md:p-5">
-      <p className="text-xs font-bold text-[#0F766E]">Ringkasan minggu ini</p>
+      <p className="text-xs font-bold text-[#1D4ED8]">Ringkasan minggu ini</p>
       <h2 className="mt-1 text-xl font-black text-[#0F172A] md:text-2xl">Progres latihanmu</h2>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <HeroMetric icon={<Activity />} value={summary.runDistance.toFixed(1)} label="Jarak lari (km)" color="text-[#0284C7]" />
@@ -1480,7 +1480,7 @@ function WeeklyTrainingTracker({ tracker, weeklyTargets, onSaveWeeklyTargets }) 
   const [notice, setNotice] = useState('');
   const accents = {
     push: { bar: 'bg-[#8B5CF6]', text: 'text-[#7C3AED]' },
-    pull: { bar: 'bg-[#14B8A6]', text: 'text-[#0F766E]' },
+    pull: { bar: 'bg-[#2563EB]', text: 'text-[#1D4ED8]' },
     legs: { bar: 'bg-[#F59E0B]', text: 'text-[#B45309]' },
     run: { bar: 'bg-[#0EA5E9]', text: 'text-[#0369A1]' },
   };
@@ -1492,12 +1492,12 @@ function WeeklyTrainingTracker({ tracker, weeklyTargets, onSaveWeeklyTargets }) 
           <p className="text-sm font-black text-[#0F172A]">Target latihan mingguan</p>
           <p className="mt-0.5 text-xs font-medium text-[#64748B]">
             Sen–Min · {formatTrackerWeek(tracker.start, tracker.end)}
-            {tracker.isCustom && <span className="font-bold text-[#0F766E]"> · target khusus</span>}
+            {tracker.isCustom && <span className="font-bold text-[#1D4ED8]"> · target khusus</span>}
           </p>
         </div>
         <button type="button" onClick={() => { setIsEditing(open => !open); setNotice(''); }}
           aria-expanded={isEditing}
-          className="flex min-h-[44px] flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#CBD5E1] px-3 text-xs font-bold text-[#0F766E] transition-colors hover:bg-[#F0FDFA] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F766E]">
+          className="flex min-h-[44px] flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#CBD5E1] px-3 text-xs font-bold text-[#1D4ED8] transition-colors hover:bg-[#EFF6FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D4ED8]">
           <Target className="h-4 w-4" aria-hidden="true" />
           {isEditing ? 'Tutup' : 'Ubah target'}
         </button>
@@ -1534,11 +1534,11 @@ function WeeklyTrainingTracker({ tracker, weeklyTargets, onSaveWeeklyTargets }) 
       </div>
 
       <p className="mt-3 border-t border-[#E2E8F0] pt-2 text-xs font-bold text-[#0F172A]">
-        Total <span className="text-[#0F766E]">{tracker.completed}/{tracker.target}</span> target tercapai
+        Total <span className="text-[#1D4ED8]">{tracker.completed}/{tracker.target}</span> target tercapai
       </p>
 
       {notice && !isEditing && (
-        <p role="status" className="mt-2 text-xs font-semibold text-[#0F766E]">{notice}</p>
+        <p role="status" className="mt-2 text-xs font-semibold text-[#1D4ED8]">{notice}</p>
       )}
 
       {isEditing && (
@@ -1595,7 +1595,7 @@ function WeeklyTargetsEditor({ initialWeekStart, byWeek, onSave, onDone, onCance
     persist(parsed.targets);
   };
 
-  const fieldCls = 'h-11 w-full rounded-lg border border-[#CBD5E1] bg-white px-3 text-sm font-bold text-[#0F172A] focus:border-[#0F766E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]/30';
+  const fieldCls = 'h-11 w-full rounded-lg border border-[#CBD5E1] bg-white px-3 text-sm font-bold text-[#0F172A] focus:border-[#1D4ED8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8]/30';
 
   return (
     <form onSubmit={handleSubmit} className="mt-3 space-y-3 border-t border-[#E2E8F0] pt-3">
@@ -1623,17 +1623,17 @@ function WeeklyTargetsEditor({ initialWeekStart, byWeek, onSave, onDone, onCance
 
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={isSaving}
-          className="min-h-[44px] flex-1 rounded-lg bg-[#0F766E] px-4 text-sm font-black text-white transition-colors hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F766E]">
+          className="min-h-[44px] flex-1 rounded-lg bg-[#1D4ED8] px-4 text-sm font-black text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D4ED8]">
           {isSaving ? 'Menyimpan...' : 'Simpan target'}
         </button>
         {hasCustom && (
           <button type="button" disabled={isSaving} onClick={() => persist(null)}
-            className="min-h-[44px] rounded-lg border border-[#CBD5E1] px-3 text-xs font-bold text-[#334155] transition-colors hover:bg-[#F8FAFC] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F766E]">
+            className="min-h-[44px] rounded-lg border border-[#CBD5E1] px-3 text-xs font-bold text-[#334155] transition-colors hover:bg-[#F8FAFC] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D4ED8]">
             Kembali ke default
           </button>
         )}
         <button type="button" disabled={isSaving} onClick={onCancel}
-          className="min-h-[44px] rounded-lg px-3 text-xs font-bold text-[#64748B] transition-colors hover:text-[#0F172A] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F766E]">
+          className="min-h-[44px] rounded-lg px-3 text-xs font-bold text-[#64748B] transition-colors hover:text-[#0F172A] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D4ED8]">
           Batal
         </button>
       </div>
@@ -1693,7 +1693,7 @@ function RunningProgressCard({ progress }) {
             <p className="text-xs font-bold text-[#0369A1]">Progres lari</p>
             <h3 className="mt-1 text-lg font-black text-[#0F172A]">Penanda performa larimu</h3>
           </div>
-          <div className="rounded-2xl bg-[#14B8A6] p-2.5 text-white"><TrendingUp className="h-5 w-5" /></div>
+          <div className="rounded-2xl bg-[#2563EB] p-2.5 text-white"><TrendingUp className="h-5 w-5" /></div>
         </div>
         <div className="mt-5 grid grid-cols-3 gap-2">
           <RunMetric label="5K PB" value={formatDashboardTime(progress.fiveKPB)} />
@@ -1701,8 +1701,8 @@ function RunningProgressCard({ progress }) {
           <RunMetric label="Terjauh" value={progress.longestRun > 0 ? `${progress.longestRun.toFixed(1)}km` : '—'} />
         </div>
         {progress.points.length >= 2 && (
-          <div className="mt-3 rounded-2xl border border-[#CCFBF1] bg-[#F8FFFD] px-3 pt-2">
-            <MiniTrend points={progress.points} color="#14B8A6" invert />
+          <div className="mt-3 rounded-2xl border border-[#DBEAFE] bg-[#F8FFFD] px-3 pt-2">
+            <MiniTrend points={progress.points} color="#2563EB" invert />
           </div>
         )}
         <p className="mt-3 text-xs text-[#64748B]">PB 5K memakai lari 4,9–5,1 km. Pace 30 hari dihitung berdasarkan jarak.</p>
@@ -1713,9 +1713,9 @@ function RunningProgressCard({ progress }) {
 
 function RunMetric({ label, value, accent = false }) {
   return (
-    <div className={`rounded-2xl p-3 ${accent ? 'bg-[#CCFBF1]' : 'bg-[#F0FDFA]'}`}>
+    <div className={`rounded-2xl p-3 ${accent ? 'bg-[#DBEAFE]' : 'bg-[#EFF6FF]'}`}>
       <p className="text-xs font-semibold text-[#64748B]">{label}</p>
-      <p className={`mt-2 text-lg font-black ${accent ? 'text-[#0F766E]' : 'text-[#0F172A]'}`}>{value}</p>
+      <p className={`mt-2 text-lg font-black ${accent ? 'text-[#1D4ED8]' : 'text-[#0F172A]'}`}>{value}</p>
     </div>
   );
 }
@@ -1811,7 +1811,7 @@ function NextSessionCard({ workouts, weeklyPlan, activeTrainingBlock }) {
           {nextPlan.runTarget.pace && (
             <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
               <span className="text-[8px] text-[#64748B] uppercase font-bold">Pace</span>
-              <span className="text-sm font-black text-[#14B8A6]">{nextPlan.runTarget.pace}/km</span>
+              <span className="text-sm font-black text-[#2563EB]">{nextPlan.runTarget.pace}/km</span>
             </div>
           )}
           <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
@@ -1820,7 +1820,7 @@ function NextSessionCard({ workouts, weeklyPlan, activeTrainingBlock }) {
           </div>
           <div className="flex flex-col items-center bg-[#FFFFFF] rounded-xl px-3 py-2 min-w-[52px]">
             <span className="text-[8px] text-[#64748B] uppercase font-bold">Effort</span>
-            <span className="text-xs font-black text-[#14B8A6] capitalize">{nextPlan.runTarget.effort || '-'}</span>
+            <span className="text-xs font-black text-[#2563EB] capitalize">{nextPlan.runTarget.effort || '-'}</span>
           </div>
         </div>
       )}
@@ -1881,7 +1881,7 @@ function Dashboard({ workouts, weeklyPlan, activeTrainingBlock, weeklyTargets, o
             data={weeklyVolume.map(w => ({ label: w.week, value: w.runKm }))}
             unit="km"
             title="Volume lari mingguan"
-            color="#14B8A6"
+            color="#2563EB"
           />
         </Suspense>
         <Suspense fallback={<DashboardFallback />}>
@@ -2040,7 +2040,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-[#0F172A] flex items-center">
-          <BrainCircuit className="w-5 h-5 mr-2 text-[#14B8A6]"/>
+          <BrainCircuit className="w-5 h-5 mr-2 text-[#2563EB]"/>
           Coach Workspace
         </h2>
         <button
@@ -2103,19 +2103,19 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
               <div className="p-4 space-y-3">
                 {/* Running */}
                 <div>
-                  <p className="text-[10px] font-bold text-[#14B8A6] uppercase tracking-wider mb-1.5">Running</p>
+                  <p className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider mb-1.5">Running</p>
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-[#F0FDFA] rounded-xl px-3 py-2">
+                    <div className="bg-[#EFF6FF] rounded-xl px-3 py-2">
                       <p className="text-[8px] text-[#64748B] uppercase font-bold">Weekly</p>
                       <p className="text-sm font-black text-[#0F172A]">{knowledge.running?.weeklyDistance?.toFixed(1) || 0} km</p>
                     </div>
-                    <div className="bg-[#F0FDFA] rounded-xl px-3 py-2">
+                    <div className="bg-[#EFF6FF] rounded-xl px-3 py-2">
                       <p className="text-[8px] text-[#64748B] uppercase font-bold">Pace</p>
                       <p className="text-sm font-black text-[#0F172A]">
                         {knowledge.running?.currentPace ? formatDashboardTime(knowledge.running.currentPace / 60) + '/km' : '—'}
                       </p>
                     </div>
-                    <div className="bg-[#F0FDFA] rounded-xl px-3 py-2">
+                    <div className="bg-[#EFF6FF] rounded-xl px-3 py-2">
                       <p className="text-[8px] text-[#64748B] uppercase font-bold">Trend</p>
                       <p className="text-sm font-black text-[#0F172A] capitalize">{knowledge.running?.trend || '—'}</p>
                     </div>
@@ -2174,7 +2174,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
                     <p className="text-[10px] font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">Plan Compliance</p>
                     <div className="bg-[#F8FAFC] rounded-xl px-4 py-3 flex items-center justify-between">
                       <span className="text-xs text-[#64748B]">{knowledge.compliance.completed} / {knowledge.compliance.planned} sessions</span>
-                      <span className="text-sm font-black text-[#14B8A6]">{knowledge.compliance.percentage || 0}%</span>
+                      <span className="text-sm font-black text-[#2563EB]">{knowledge.compliance.percentage || 0}%</span>
                     </div>
                   </div>
                 )}
@@ -2194,7 +2194,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
               </div>
               <button
                 onClick={() => setActiveCoachTab('alerts')}
-                className="text-[10px] font-bold text-[#14B8A6] hover:text-[#0F766E] transition-colors flex items-center gap-1"
+                className="text-[10px] font-bold text-[#2563EB] hover:text-[#1D4ED8] transition-colors flex items-center gap-1"
               >
                 View All <ChevronRight className="w-3 h-3" />
               </button>
@@ -2202,7 +2202,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
             <div className="px-4 py-3">
               {alerts.length === 0 ? (
                 <div className="flex items-center gap-2 text-xs text-[#64748B]">
-                  <CheckCircle2 className="w-4 h-4 text-[#14B8A6]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
                   No alerts. Everything looks good!
                 </div>
               ) : (
@@ -2218,12 +2218,12 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
           <div className="rounded-3xl border border-[#DCE3EA] bg-white overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-[#DCE3EA]">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#14B8A6]" />
+                <MessageSquare className="w-4 h-4 text-[#2563EB]" />
                 <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">Weekly Review</p>
               </div>
               <button
                 onClick={() => setActiveCoachTab('report')}
-                className="text-[10px] font-bold text-[#14B8A6] hover:text-[#0F766E] transition-colors flex items-center gap-1"
+                className="text-[10px] font-bold text-[#2563EB] hover:text-[#1D4ED8] transition-colors flex items-center gap-1"
               >
                 Open Report <ChevronRight className="w-3 h-3" />
               </button>
@@ -2246,7 +2246,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
               </div>
               <button
                 onClick={() => setActiveCoachTab('pipeline')}
-                className="text-[10px] font-bold text-[#14B8A6] hover:text-[#0F766E] transition-colors flex items-center gap-1"
+                className="text-[10px] font-bold text-[#2563EB] hover:text-[#1D4ED8] transition-colors flex items-center gap-1"
               >
                 Open Pipeline <ChevronRight className="w-3 h-3" />
               </button>
@@ -2336,7 +2336,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
         <div className="space-y-3">
           {alerts.length === 0 ? (
             <div className="rounded-3xl border border-[#DCE3EA] bg-white p-6 text-center">
-              <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-[#14B8A6]" />
+              <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-[#2563EB]" />
               <p className="text-sm text-[#64748B]">No alerts. Everything looks good!</p>
             </div>
           ) : (
@@ -2420,7 +2420,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
               setActiveCoachTab('insight');
               setTimeout(() => setActiveCoachTab('pipeline'), 50);
             }}
-            className="w-full py-3 rounded-xl font-black text-sm bg-gradient-to-r from-[#14B8A6] to-[#99F6E4] text-[#05131c] hover:brightness-110 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl font-black text-sm bg-gradient-to-r from-[#2563EB] to-[#BFDBFE] text-[#05131c] hover:brightness-110 transition-all flex items-center justify-center gap-2"
           >
             <Zap className="w-4 h-4"/>
             Refresh Pipeline
@@ -2465,7 +2465,7 @@ function CoachWorkspace({ workouts, weeklyPlan, activeTrainingBlock, user }) {
 // ─── Pipeline Step Component ────────────────────────────────────────────────
 function PipelineStep({ step, title, description, status, icon: Icon }) {
   const statusConfig = {
-    complete: { bg: 'bg-[#ECFDF5] border-[#A7F3D0]', icon: CheckCircle2, iconColor: 'text-[#14B8A6]', label: 'Complete' },
+    complete: { bg: 'bg-[#ECFDF5] border-[#A7F3D0]', icon: CheckCircle2, iconColor: 'text-[#2563EB]', label: 'Complete' },
     ready: { bg: 'bg-[#FFFBEB] border-[#FDE68A]', icon: AlertTriangle, iconColor: 'text-[#F59E0B]', label: 'Ready' },
     pending: { bg: 'bg-[#F1F5F9] border-[#DCE3EA]', icon: Clock, iconColor: 'text-[#94A3B8]', label: 'Pending' },
   };
@@ -2475,8 +2475,8 @@ function PipelineStep({ step, title, description, status, icon: Icon }) {
   return (
     <div className={`rounded-3xl border ${config.bg} p-4`}>
       <div className="flex items-start gap-3">
-        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${status === 'complete' ? 'bg-[#14B8A6]/20' : status === 'ready' ? 'bg-[#F59E0B]/20' : 'bg-[#E2E8F0]'}`}>
-          <Icon className={`w-4 h-4 ${status === 'complete' ? 'text-[#14B8A6]' : status === 'ready' ? 'text-[#F59E0B]' : 'text-[#94A3B8]'}`} />
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${status === 'complete' ? 'bg-[#2563EB]/20' : status === 'ready' ? 'bg-[#F59E0B]/20' : 'bg-[#E2E8F0]'}`}>
+          <Icon className={`w-4 h-4 ${status === 'complete' ? 'text-[#2563EB]' : status === 'ready' ? 'text-[#F59E0B]' : 'text-[#94A3B8]'}`} />
         </div>
         <div className="flex-1">
           <div className="flex items-center justify-between">
@@ -2646,7 +2646,7 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
   };
 
   const typeConfig = {
-    Lari:     { active: 'bg-[#14B8A6] text-white shadow-lg shadow-[rgba(20,184,166,0.22)]', submit: 'bg-[#14B8A6] hover:bg-[#0F766E] text-white shadow-[rgba(20,184,166,0.22)]', border: 'focus:border-[#14B8A6]' },
+    Lari:     { active: 'bg-[#2563EB] text-white shadow-lg shadow-[rgba(20,184,166,0.22)]', submit: 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-[rgba(20,184,166,0.22)]', border: 'focus:border-[#2563EB]' },
     Gym:      { active: 'bg-[#8B5CF6] text-white shadow-lg shadow-[rgba(139,92,246,0.22)]', submit: 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-[rgba(139,92,246,0.22)]', border: 'focus:border-[#8B5CF6]' },
     Recovery: { active: 'bg-[#64748B] text-white shadow-lg shadow-[rgba(100,116,139,0.18)]', submit: 'bg-[#64748B] hover:bg-[#475569] text-white shadow-[rgba(100,116,139,0.18)]', border: 'focus:border-[#64748B]' },
   };
@@ -2655,19 +2655,19 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
     <div className="bg-white border border-[#CBD5E1] p-5 rounded-3xl shadow-[0_12px_32px_rgba(17,24,39,0.08)] border border-[#DCE3EA] animate-in fade-in">
       <div className="flex items-center justify-between gap-3 mb-5">
         <h2 className="text-lg font-bold text-[#0F172A] flex items-center">
-          <PlusCircle className="w-5 h-5 mr-2 text-[#14B8A6]"/> Catat Latihan
+          <PlusCircle className="w-5 h-5 mr-2 text-[#2563EB]"/> Catat Latihan
         </h2>
         <div className="flex items-center gap-2">
           {fromPlan && (
             <div className="hidden sm:flex items-center gap-1.5 bg-[#ECFDF5] border border-[#A7F3D0] rounded-full px-3 py-1">
-              <ClipboardList className="w-3 h-3 text-[#14B8A6]"/>
-              <span className="text-[10px] font-bold text-[#14B8A6]">Dari Plan</span>
+              <ClipboardList className="w-3 h-3 text-[#2563EB]"/>
+              <span className="text-[10px] font-bold text-[#2563EB]">Dari Plan</span>
             </div>
           )}
           <button
             type="button"
             onClick={() => setShowImportBlock(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-[#CBD5E1] bg-[#ECFDF5] px-3 py-2 text-[10px] font-bold text-[#0F766E] transition-colors hover:bg-[#CCFBF1]"
+            className="flex items-center gap-1.5 rounded-xl border border-[#CBD5E1] bg-[#ECFDF5] px-3 py-2 text-[10px] font-bold text-[#1D4ED8] transition-colors hover:bg-[#DBEAFE]"
           >
             <ClipboardList className="w-3.5 h-3.5" />
             Impor Blok
@@ -2709,7 +2709,7 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
               <button
                 type="button"
                 onClick={loadLastGymSession}
-                className="px-3 py-2 rounded-xl bg-[#14B8A6] hover:bg-[#0F172A] text-white text-xs font-black transition-colors shadow-sm"
+                className="px-3 py-2 rounded-xl bg-[#2563EB] hover:bg-[#0F172A] text-white text-xs font-black transition-colors shadow-sm"
               >
                 Muat Sesi {gymCat} Terakhir
               </button>
@@ -2727,13 +2727,13 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
             </div>
             {/* Live Pace Preview */}
             {dist && dur && parseFloat(dist) > 0 && parseInt(dur) > 0 && (
-              <div className="flex items-center justify-between bg-[#14B8A6]/10 border border-[#14B8A6]/20 rounded-xl px-4 py-2.5">
-                <span className="text-[10px] font-bold text-[#14B8A6] uppercase tracking-wider">⚡ Pace Otomatis</span>
+              <div className="flex items-center justify-between bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-xl px-4 py-2.5">
+                <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider">⚡ Pace Otomatis</span>
                 <span className="font-black text-[#f0d090] text-base">{formatPace(parseInt(dur), parseFloat(dist))}</span>
               </div>
             )}
             <SelectField label="Status Eksekusi" value={planStatus} onChange={e=>setPlanStatus(e.target.value)} options={['Sesuai Plan', 'Terlalu Berat', 'Terlalu Ringan', 'Missed Plan']} activeColor={typeConfig[type].border} />
-            <SliderField label="RPE (Kesulitan)" value={runRpe} onChange={e=>setRunRpe(e.target.value)} accentColor="accent-[#14B8A6]" />
+            <SliderField label="RPE (Kesulitan)" value={runRpe} onChange={e=>setRunRpe(e.target.value)} accentColor="accent-[#2563EB]" />
           </div>
         )}
 
@@ -2830,7 +2830,7 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
                     {gymExercises.filter(e=>e.exercise).length} gerakan
                   </span>
                 </div>
-                <span className="font-black text-[#14B8A6]">
+                <span className="font-black text-[#2563EB]">
                   {gymExercises.reduce((total, e) =>
                     total + e.sets.reduce((a,s) => a+((parseFloat(s.weight)||0)*(parseInt(s.reps)||0)),0), 0
                   ).toLocaleString()} kg
@@ -2847,8 +2847,8 @@ function QuickInput({ onAdd, workouts, weeklyPlan, user, onTrainingBlockImported
               <InputField label="Tidur (Jam)" type="number" step="0.5" value={sleep} onChange={e=>setSleep(e.target.value)} placeholder="7.5" required activeColor={typeConfig[type].border} />
               <InputField label="Berat (kg)" type="number" step="0.1" value={bodyWeight} onChange={e=>setBodyWeight(e.target.value)} placeholder="60.5" activeColor={typeConfig[type].border} />
             </div>
-            <SliderField label="Rasa Pegal (DOMS)" value={soreness} onChange={e=>setSoreness(e.target.value)} invertColors accentColor="accent-[#14B8A6]" />
-            <SliderField label="Tingkat Lelah" value={fatigue} onChange={e=>setFatigue(e.target.value)} invertColors accentColor="accent-[#14B8A6]" />
+            <SliderField label="Rasa Pegal (DOMS)" value={soreness} onChange={e=>setSoreness(e.target.value)} invertColors accentColor="accent-[#2563EB]" />
+            <SliderField label="Tingkat Lelah" value={fatigue} onChange={e=>setFatigue(e.target.value)} invertColors accentColor="accent-[#2563EB]" />
           </div>
         )}
 
@@ -2992,8 +2992,8 @@ function ExportModal({ workouts, onClose }) {
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#1a1a2e;background:#fff;padding:28px 32px}
 .actions{position:sticky;top:0;z-index:2;display:flex;justify-content:flex-end;padding-bottom:14px;background:#fff}
-.print-button{min-height:44px;border:0;border-radius:8px;background:#0f766e;color:#fff;padding:10px 16px;font:700 12px 'Segoe UI',Arial,sans-serif;cursor:pointer}
-.print-button:hover{background:#115e59}
+.print-button{min-height:44px;border:0;border-radius:8px;background:#1D4ED8;color:#fff;padding:10px 16px;font:700 12px 'Segoe UI',Arial,sans-serif;cursor:pointer}
+.print-button:hover{background:#1E40AF}
 .print-button:focus-visible{outline:3px solid #38bdf8;outline-offset:2px}
 h1{font-size:22px;font-weight:800;color:#1a1a2e;margin-bottom:3px}
 .sub{font-size:11px;color:#666;margin-bottom:20px}
@@ -3079,7 +3079,7 @@ document.getElementById('printReport').addEventListener('click', () => {
       <div className="w-full max-w-md space-y-4 rounded-2xl border border-[#CBD5E1] bg-white p-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black text-[#0F172A] flex items-center gap-2">
-            <FileDown className="w-5 h-5 text-[#14B8A6]"/>
+            <FileDown className="w-5 h-5 text-[#2563EB]"/>
             Ekspor Laporan PDF
           </h2>
           <button onClick={onClose} aria-label="Tutup ekspor laporan" className="text-[#64748B] hover:text-[#0F172A] p-1 transition-colors">
@@ -3091,12 +3091,12 @@ document.getElementById('printReport').addEventListener('click', () => {
           <div>
             <label className="block text-[10px] font-bold text-[#0F172A] uppercase tracking-wide mb-1.5">Dari</label>
             <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] focus:outline-none focus:border-[#14B8A6] transition-colors"/>
+              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB] transition-colors"/>
           </div>
           <div>
             <label className="block text-[10px] font-bold text-[#0F172A] uppercase tracking-wide mb-1.5">Sampai</label>
             <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] focus:outline-none focus:border-[#14B8A6] transition-colors"/>
+              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB] transition-colors"/>
           </div>
         </div>
 
@@ -3114,14 +3114,14 @@ document.getElementById('printReport').addEventListener('click', () => {
         <div className="bg-white rounded-xl px-4 py-3 flex items-center justify-between">
           <div className="flex gap-5">
             <span><span className="font-black text-[#c76360] text-sm">{runs.length}</span> <span className="text-[10px] text-[#64748B]">lari</span></span>
-            <span><span className="font-black text-[#14B8A6] text-sm">{gyms.length}</span> <span className="text-[10px] text-[#64748B]">gym</span></span>
+            <span><span className="font-black text-[#2563EB] text-sm">{gyms.length}</span> <span className="text-[10px] text-[#64748B]">gym</span></span>
             <span><span className="font-black text-[#0F172A] text-sm">{filtered.length}</span> <span className="text-[10px] text-[#64748B]">total sesi</span></span>
           </div>
           <span className="text-[9px] text-[#64748B] italic">ditemukan</span>
         </div>
 
         <button onClick={handlePrint} disabled={filtered.length === 0}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0F766E] py-3 text-sm font-black text-white transition-colors hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-40">
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 text-sm font-black text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-40">
           <FileDown className="w-4 h-4"/>
           Ekspor PDF: {filtered.length} sesi
         </button>
@@ -3260,7 +3260,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
       <div className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl border border-[#CBD5E1] bg-white p-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black text-[#0F172A] flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-[#14B8A6]"/>
+            <ClipboardList className="w-5 h-5 text-[#2563EB]"/>
             Impor Blok Latihan
           </h2>
           <button onClick={onClose} disabled={isImporting} aria-label="Tutup impor Blok Latihan" className="text-[#64748B] hover:text-[#0F172A] p-1 transition-colors disabled:opacity-40">
@@ -3274,7 +3274,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
           rows={10}
           placeholder="Tempel JSON Blok Latihan dari Perplexity Space..."
           aria-label="JSON Blok Latihan"
-          className="w-full resize-none rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-2.5 font-mono text-xs leading-relaxed text-[#0F172A] outline-none focus:border-[#14B8A6]"
+          className="w-full resize-none rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-2.5 font-mono text-xs leading-relaxed text-[#0F172A] outline-none focus:border-[#2563EB]"
         />
 
         {/* Parse error */}
@@ -3312,7 +3312,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
         {validationResult && validationResult.valid && normalizedBlock && (
           <div className="bg-[#ECFDF5] border border-[#A7F3D0] rounded-2xl px-4 py-3 space-y-2">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#14B8A6]"/>
+              <CheckCircle2 className="w-4 h-4 text-[#2563EB]"/>
               <span className="text-xs font-bold text-[#065F46]">Blok Latihan valid</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-[11px]">
@@ -3394,7 +3394,7 @@ function ImportTrainingBlockModal({ onClose, user, onImportSuccess }) {
             Validasi
           </button>
           <button onClick={() => commitImport(false)} disabled={!normalizedBlock || isImporting || replacementCount > 0}
-            className="flex-1 rounded-xl bg-[#0F766E] py-2 text-sm font-black text-white transition-colors hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-40">
+            className="flex-1 rounded-xl bg-[#1D4ED8] py-2 text-sm font-black text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-40">
             {isImporting ? 'Mengimpor...' : 'Impor Blok'}
           </button>
         </div>
@@ -3426,9 +3426,9 @@ function History({ workouts, onDelete, onEdit }) {
   }
 
   const typeStyle = {
-    Lari:     { icon: Activity, gradient: 'from-[#14B8A6]/20 to-[#14B8A6]/0', text: 'text-[#14B8A6]', badge: 'bg-[#14B8A6]/20 text-[#f0d090]', border: 'border-[#14B8A6]/20' },
-    Gym:      { icon: Dumbbell, gradient: 'from-[#8B5CF6]/20 to-[#8B5CF6]/0', text: 'text-[#64748B]', badge: 'bg-[#FFFFFF] text-[#14B8A6]', border: 'border-[#CBD5E1]/20' },
-    Recovery: { icon: Moon, gradient: 'from-[#14B8A6]/20 to-[#22a898]/0', text: 'text-[#14B8A6]', badge: 'bg-[#14B8A6]/20 text-[#5ae0c0]', border: 'border-[#14B8A6]/20' },
+    Lari:     { icon: Activity, gradient: 'from-[#2563EB]/20 to-[#2563EB]/0', text: 'text-[#2563EB]', badge: 'bg-[#2563EB]/20 text-[#f0d090]', border: 'border-[#2563EB]/20' },
+    Gym:      { icon: Dumbbell, gradient: 'from-[#8B5CF6]/20 to-[#8B5CF6]/0', text: 'text-[#64748B]', badge: 'bg-[#FFFFFF] text-[#2563EB]', border: 'border-[#CBD5E1]/20' },
+    Recovery: { icon: Moon, gradient: 'from-[#2563EB]/20 to-[#22a898]/0', text: 'text-[#2563EB]', badge: 'bg-[#2563EB]/20 text-[#5ae0c0]', border: 'border-[#2563EB]/20' },
   };
 
   // Group by date
@@ -3458,11 +3458,11 @@ function History({ workouts, onDelete, onEdit }) {
     <div className="space-y-1 animate-in fade-in">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-[#0F172A] flex items-center">
-          <List className="w-5 h-5 mr-2 text-[#14B8A6]"/> Riwayat Sesi
+          <List className="w-5 h-5 mr-2 text-[#2563EB]"/> Riwayat Sesi
         </h2>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowExport(true)}
-            className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl bg-[#FFFFFF] text-[#0F172A] hover:bg-[#99F6E4]/20 hover:text-[#14B8A6] transition-all border border-[#CBD5E1]/40">
+            className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl bg-[#FFFFFF] text-[#0F172A] hover:bg-[#BFDBFE]/20 hover:text-[#2563EB] transition-all border border-[#CBD5E1]/40">
             <FileDown className="w-3.5 h-3.5"/>
             Ekspor PDF
           </button>
@@ -3474,7 +3474,7 @@ function History({ workouts, onDelete, onEdit }) {
           {/* Date separator */}
           <div className="flex items-center gap-2 px-1 py-2 mb-1.5">
             <span className="text-base">{dayIcon(dateKey)}</span>
-            <span className="text-xs font-black text-[#14B8A6] uppercase tracking-wider">{formatDateHeader(dateKey)}</span>
+            <span className="text-xs font-black text-[#2563EB] uppercase tracking-wider">{formatDateHeader(dateKey)}</span>
             <div className="flex-1 h-px bg-[#8B5CF6]"/>
             <span className="text-[10px] text-[#64748B] font-medium">{grouped[dateKey].length} sesi</span>
           </div>
@@ -3525,7 +3525,7 @@ function History({ workouts, onDelete, onEdit }) {
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}/>
                     </button>
                   )}
-                  <button onClick={() => onEdit(w)} className="p-1.5 text-[#64748B] hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 rounded-lg transition-colors">
+                  <button onClick={() => onEdit(w)} className="p-1.5 text-[#64748B] hover:text-[#2563EB] hover:bg-[#2563EB]/10 rounded-lg transition-colors">
                     <Pencil className="w-3.5 h-3.5"/>
                   </button>
                   <button onClick={() => onDelete(w.id)} className="p-1.5 text-[#64748B] hover:text-[#d07573] hover:bg-[#c76360]/10 rounded-lg transition-colors">
@@ -3555,7 +3555,7 @@ function History({ workouts, onDelete, onEdit }) {
                       </div>
                       {bestW > 0 && (
                         <div className="text-right flex-shrink-0">
-                          <p className="text-xs font-black text-[#14B8A6]">{bestW}kg</p>
+                          <p className="text-xs font-black text-[#2563EB]">{bestW}kg</p>
                           <p className="text-[9px] text-[#64748B]">best</p>
                         </div>
                       )}
@@ -3674,8 +3674,8 @@ function AllTimeStats({ workouts }) {
 
   const CAT_STYLE = {
     Push: { color: '#8B5CF6', bg: 'bg-[#FFFFFF]', border: 'border-[#CBD5E1]/40', label: 'Push' },
-    Pull: { color: '#14B8A6', bg: 'bg-[#14B8A6]/15', border: 'border-[#14B8A6]/40', label: 'Pull' },
-    Legs: { color: '#99F6E4', bg: 'bg-[#99F6E4]/15', border: 'border-[#CBD5E1]', label: 'Legs' },
+    Pull: { color: '#2563EB', bg: 'bg-[#2563EB]/15', border: 'border-[#2563EB]/40', label: 'Pull' },
+    Legs: { color: '#BFDBFE', bg: 'bg-[#BFDBFE]/15', border: 'border-[#CBD5E1]', label: 'Legs' },
   };
 
   return (
@@ -3753,7 +3753,7 @@ function ProgressionTracker({ workouts }) {
   return (
     <div className="space-y-5 animate-in fade-in">
       <h2 className="text-lg font-bold text-[#0F172A] flex items-center">
-        <Award className="w-5 h-5 mr-2 text-[#14B8A6]"/> Progres Analisis
+        <Award className="w-5 h-5 mr-2 text-[#2563EB]"/> Progres Analisis
       </h2>
 
       <AllTimeStats workouts={workouts} />
@@ -3764,11 +3764,11 @@ function ProgressionTracker({ workouts }) {
           <p className="text-xl font-black text-[#0F172A]">{prs.length}<span className="text-xs font-medium text-[#64748B] ml-1">exercise</span></p>
         </div>
         <div className="bg-gradient-to-br from-white to-[#FFFFFF] border border-[#CBD5E1] p-3 rounded-3xl shadow-sm">
-          <h3 className="text-[8px] font-bold text-[#14B8A6] uppercase tracking-wider mb-1.5">🏃 Terjauh</h3>
+          <h3 className="text-[8px] font-bold text-[#2563EB] uppercase tracking-wider mb-1.5">🏃 Terjauh</h3>
           <p className="text-xl font-black text-[#0F172A]">{maxDistance > 0 ? maxDistance : '—'}<span className="text-xs font-medium text-[#64748B] ml-1">km</span></p>
         </div>
         <div className="bg-gradient-to-br from-white to-[#FFFFFF] border border-[#CBD5E1] p-3 rounded-3xl shadow-sm">
-          <h3 className="text-[8px] font-bold text-[#14B8A6] uppercase tracking-wider mb-1.5">⚡ Best Pace</h3>
+          <h3 className="text-[8px] font-bold text-[#2563EB] uppercase tracking-wider mb-1.5">⚡ Best Pace</h3>
           <p className="text-lg font-black text-[#0F172A] leading-tight">{bestPace ? formatPace(bestPace * 1, 1) : '—'}</p>
         </div>
       </div>
@@ -3792,7 +3792,7 @@ function ProgressionTracker({ workouts }) {
               <div key={pr.exercise} className="flex items-center justify-between gap-3 bg-[#F5F7F9] border border-[#DCE3EA] rounded-2xl px-3 py-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="w-5 h-5 rounded-md bg-[#14B8A6]/10 text-[#14B8A6] text-[10px] font-black flex items-center justify-center">{idx + 1}</span>
+                    <span className="w-5 h-5 rounded-md bg-[#2563EB]/10 text-[#2563EB] text-[10px] font-black flex items-center justify-center">{idx + 1}</span>
                     <p className="text-sm font-bold text-[#0F172A] truncate">{pr.exercise}</p>
                   </div>
                   <p className="text-[11px] text-[#64748B]">{formatDateID(pr.date)}</p>
@@ -3815,7 +3815,7 @@ function ProgressionTracker({ workouts }) {
           <select
             value={selectedExercise}
             onChange={(e) => setSelectedExercise(e.target.value)}
-            className="bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:outline-none focus:border-[#14B8A6]"
+            className="bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:outline-none focus:border-[#2563EB]"
           >
             {exerciseOptions.length === 0 ? <option value="">No exercise</option> : exerciseOptions.map(name => <option key={name} value={name}>{name}</option>)}
           </select>
@@ -3823,7 +3823,7 @@ function ProgressionTracker({ workouts }) {
 
         {selectedPR && (
           <div className="flex items-center justify-between bg-[#ECFDF5] border border-[#A7F3D0] rounded-2xl px-3 py-2.5">
-            <span className="text-[11px] font-bold text-[#14B8A6] uppercase tracking-wider">Current PR</span>
+            <span className="text-[11px] font-bold text-[#2563EB] uppercase tracking-wider">Current PR</span>
             <span className="text-sm font-black text-[#0F172A]">{selectedPR.weight}kg × {selectedPR.reps}</span>
           </div>
         )}
@@ -3844,7 +3844,7 @@ function ProgressionTracker({ workouts }) {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-black text-[#0F172A]">{item.weight}kg × {item.reps}</p>
-                    {isPR && <p className="text-[10px] font-bold text-[#14B8A6] uppercase tracking-wider">PR</p>}
+                    {isPR && <p className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider">PR</p>}
                   </div>
                 </div>
               );
@@ -3855,13 +3855,13 @@ function ProgressionTracker({ workouts }) {
 
       <div className="bg-white border border-[#CBD5E1] p-5 rounded-3xl">
         <h3 className="text-sm font-bold text-[#64748B] mb-4 flex items-center">
-          <span className="w-2 h-2 rounded-full bg-gradient-to-r from-[#99F6E4] to-[#5a90b8] mr-2 inline-block"></span>
+          <span className="w-2 h-2 rounded-full bg-gradient-to-r from-[#BFDBFE] to-[#5a90b8] mr-2 inline-block"></span>
           Total Kumulatif Semua Waktu
         </h3>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#F5F7F9] rounded-xl p-3 border border-[#CBD5E1]">
             <p className="text-[9px] text-[#64748B] uppercase font-bold mb-1">Sesi Lari</p>
-            <p className="text-xl font-black text-[#14B8A6]">{totalRunSessions}<span className="text-xs font-medium text-[#64748B] ml-1">sesi</span></p>
+            <p className="text-xl font-black text-[#2563EB]">{totalRunSessions}<span className="text-xs font-medium text-[#64748B] ml-1">sesi</span></p>
           </div>
           <div className="bg-[#F5F7F9] rounded-xl p-3 border border-[#CBD5E1]">
             <p className="text-[9px] text-[#64748B] uppercase font-bold mb-1">Sesi Gym</p>
@@ -3873,7 +3873,7 @@ function ProgressionTracker({ workouts }) {
           </div>
           <div className="bg-[#F5F7F9] rounded-xl p-3 border border-[#CBD5E1]">
             <p className="text-[9px] text-[#64748B] uppercase font-bold mb-1">Total Volume</p>
-            <p className="text-xl font-black text-[#14B8A6]">{totalGymVol.toLocaleString()}<span className="text-xs font-medium text-[#64748B] ml-1">kg</span></p>
+            <p className="text-xl font-black text-[#2563EB]">{totalGymVol.toLocaleString()}<span className="text-xs font-medium text-[#64748B] ml-1">kg</span></p>
           </div>
         </div>
       </div>
@@ -3894,9 +3894,9 @@ function getHRZone(hr) {
   if (!hr) return null;
   const zones = [
     { max: 114, zone: 'Z1', label: 'Very Light', color: 'text-[#0F172A] bg-[#FFFFFF] border-[#CBD5E1]/20' },
-    { max: 134, zone: 'Z2', label: 'Easy',       color: 'text-[#14B8A6] bg-[#14B8A6]/10 border-[#14B8A6]/20' },
-    { max: 154, zone: 'Z3', label: 'Moderate',   color: 'text-[#14B8A6] bg-[#14B8A6]/10 border-[#14B8A6]/20' },
-    { max: 174, zone: 'Z4', label: 'Hard',        color: 'text-[#14B8A6] bg-[#FFFFFF] border-[#99F6E4]/20' },
+    { max: 134, zone: 'Z2', label: 'Easy',       color: 'text-[#2563EB] bg-[#2563EB]/10 border-[#2563EB]/20' },
+    { max: 154, zone: 'Z3', label: 'Moderate',   color: 'text-[#2563EB] bg-[#2563EB]/10 border-[#2563EB]/20' },
+    { max: 174, zone: 'Z4', label: 'Hard',        color: 'text-[#2563EB] bg-[#FFFFFF] border-[#BFDBFE]/20' },
     { max: Infinity, zone: 'Z5', label: 'Max',   color: 'text-[#d07573] bg-[#c76360]/10 border-[#c76360]/20' },
   ];
   return zones.find(z => hr <= z.max) || null;
@@ -4098,9 +4098,9 @@ function EditModal({ workout, onClose, onSave }) {
   const [bodyWeight, setBodyWeight] = useState(workout.weight?.toString() || '');
 
   const typeColors = {
-    Lari:     'from-[#14B8A6]/20 to-[#14B8A6]/10 border-[#0d2d45]/40',
+    Lari:     'from-[#2563EB]/20 to-[#2563EB]/10 border-[#0d2d45]/40',
     Gym:      'from-[#8B5CF6]/20 to-[#5a90b8]/10 border-[#0d2d45]/40',
-    Recovery: 'from-[#14B8A6]/20 to-[#22a898]/10 border-[#0a2a28]/40',
+    Recovery: 'from-[#2563EB]/20 to-[#22a898]/10 border-[#0a2a28]/40',
   };
   const headerColor = typeColors[workout.type] || typeColors.Recovery;
 
@@ -4204,7 +4204,7 @@ function EditModal({ workout, onClose, onSave }) {
           {/* Date */}
           <div>
             <label className={labelCls}>Tanggal</label>
-            <input type="date" value={date} onChange={e=>setDate(e.target.value)} className={inputCls('focus:border-[#14B8A6]')} />
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)} className={inputCls('focus:border-[#2563EB]')} />
           </div>
 
           {/* LARI FIELDS */}
@@ -4212,19 +4212,19 @@ function EditModal({ workout, onClose, onSave }) {
             <div className="space-y-4">
               <div>
                 <label className={labelCls}>Sesi</label>
-                <select value={runCat} onChange={e=>setRunCat(e.target.value)} className={inputCls('focus:border-[#14B8A6]') + ' appearance-none'}>
+                <select value={runCat} onChange={e=>setRunCat(e.target.value)} className={inputCls('focus:border-[#2563EB]') + ' appearance-none'}>
                   {['Easy Run','Tempo','Interval','Long Run','Recovery'].map(o=><option key={o}>{o}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={labelCls}>Jarak (km)</label><input type="number" step="0.01" value={dist} onChange={e=>setDist(e.target.value)} className={inputCls('focus:border-[#14B8A6]')} /></div>
-                <div><label className={labelCls}>Waktu (mnt)</label><input type="number" value={dur} onChange={e=>setDur(e.target.value)} className={inputCls('focus:border-[#14B8A6]')} /></div>
-                <div><label className={labelCls}>Avg HR</label><input type="number" value={hr} onChange={e=>setHr(e.target.value)} className={inputCls('focus:border-[#14B8A6]')} /></div>
-                <div><label className={labelCls}>Cadence</label><input type="number" value={cadence} onChange={e=>setCadence(e.target.value)} className={inputCls('focus:border-[#14B8A6]')} /></div>
+                <div><label className={labelCls}>Jarak (km)</label><input type="number" step="0.01" value={dist} onChange={e=>setDist(e.target.value)} className={inputCls('focus:border-[#2563EB]')} /></div>
+                <div><label className={labelCls}>Waktu (mnt)</label><input type="number" value={dur} onChange={e=>setDur(e.target.value)} className={inputCls('focus:border-[#2563EB]')} /></div>
+                <div><label className={labelCls}>Avg HR</label><input type="number" value={hr} onChange={e=>setHr(e.target.value)} className={inputCls('focus:border-[#2563EB]')} /></div>
+                <div><label className={labelCls}>Cadence</label><input type="number" value={cadence} onChange={e=>setCadence(e.target.value)} className={inputCls('focus:border-[#2563EB]')} /></div>
               </div>
               {dist && dur && parseFloat(dist) > 0 && parseInt(dur) > 0 && (
-                <div className="flex items-center justify-between bg-[#14B8A6]/10 border border-[#14B8A6]/20 rounded-xl px-4 py-2">
-                  <span className="text-[10px] font-bold text-[#14B8A6] uppercase">⚡ Pace</span>
+                <div className="flex items-center justify-between bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-xl px-4 py-2">
+                  <span className="text-[10px] font-bold text-[#2563EB] uppercase">⚡ Pace</span>
                   <span className="font-black text-[#f0d090]">{formatPace(parseInt(dur), parseFloat(dist))}</span>
                 </div>
               )}
@@ -4234,10 +4234,10 @@ function EditModal({ workout, onClose, onSave }) {
                   <span className="font-bold text-sm">{hr} bpm</span>
                 </div>
               ); })()}
-              <SliderField label="RPE (Kesulitan)" value={runRpe} onChange={e=>setRunRpe(e.target.value)} accentColor="accent-[#14B8A6]" />
+              <SliderField label="RPE (Kesulitan)" value={runRpe} onChange={e=>setRunRpe(e.target.value)} accentColor="accent-[#2563EB]" />
               <div>
                 <label className={labelCls}>Status Eksekusi</label>
-                <select value={planStatus} onChange={e=>setPlanStatus(e.target.value)} className={inputCls('focus:border-[#14B8A6]') + ' appearance-none'}>
+                <select value={planStatus} onChange={e=>setPlanStatus(e.target.value)} className={inputCls('focus:border-[#2563EB]') + ' appearance-none'}>
                   {['Sesuai Plan','Terlalu Berat','Terlalu Ringan','Missed Plan'].map(o=><option key={o}>{o}</option>)}
                 </select>
               </div>
@@ -4333,11 +4333,11 @@ function EditModal({ workout, onClose, onSave }) {
           {workout.type === 'Recovery' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={labelCls}>Tidur (Jam)</label><input type="number" step="0.5" value={sleep} onChange={e=>setSleep(e.target.value)} className={inputCls('focus:border-[#14B8A6]')} /></div>
-                <div><label className={labelCls}>Berat (kg)</label><input type="number" step="0.1" value={bodyWeight} onChange={e=>setBodyWeight(e.target.value)} className={inputCls('focus:border-[#14B8A6]')} /></div>
+                <div><label className={labelCls}>Tidur (Jam)</label><input type="number" step="0.5" value={sleep} onChange={e=>setSleep(e.target.value)} className={inputCls('focus:border-[#2563EB]')} /></div>
+                <div><label className={labelCls}>Berat (kg)</label><input type="number" step="0.1" value={bodyWeight} onChange={e=>setBodyWeight(e.target.value)} className={inputCls('focus:border-[#2563EB]')} /></div>
               </div>
-              <SliderField label="Rasa Pegal (DOMS)" value={soreness} onChange={e=>setSoreness(e.target.value)} invertColors accentColor="accent-[#14B8A6]" />
-              <SliderField label="Tingkat Lelah" value={fatigue} onChange={e=>setFatigue(e.target.value)} invertColors accentColor="accent-[#14B8A6]" />
+              <SliderField label="Rasa Pegal (DOMS)" value={soreness} onChange={e=>setSoreness(e.target.value)} invertColors accentColor="accent-[#2563EB]" />
+              <SliderField label="Tingkat Lelah" value={fatigue} onChange={e=>setFatigue(e.target.value)} invertColors accentColor="accent-[#2563EB]" />
             </div>
           )}
 
@@ -4345,7 +4345,7 @@ function EditModal({ workout, onClose, onSave }) {
           <div>
             <label className={labelCls}>Catatan Sesi</label>
             <textarea rows="2" value={notes} onChange={e=>setNotes(e.target.value)}
-              className="w-full bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-4 py-3 text-[#0F172A] text-sm focus:outline-none focus:border-[#14B8A6] transition-colors resize-none"
+              className="w-full bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-4 py-3 text-[#0F172A] text-sm focus:outline-none focus:border-[#2563EB] transition-colors resize-none"
             />
           </div>
           {saveError && (
@@ -4358,7 +4358,7 @@ function EditModal({ workout, onClose, onSave }) {
         {/* Footer */}
         <div className="p-4 border-t border-[#CBD5E1] shrink-0 grid grid-cols-2 gap-3 pb-8 sm:pb-4">
           <button onClick={onClose} disabled={isSaving} className="py-3.5 rounded-xl bg-[#8B5CF6] hover:bg-[#2d3f72] text-[#0F172A] font-bold transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed">Batal</button>
-          <button onClick={handleSave} disabled={isSaving} className="py-3.5 rounded-xl bg-gradient-to-r from-[#99F6E4] to-[#14B8A6] text-[#0F172A] font-bold shadow-lg shadow-[#99F6E4]/20 transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed">{isSaving ? 'Menyimpan...' : 'Simpan'}</button>
+          <button onClick={handleSave} disabled={isSaving} className="py-3.5 rounded-xl bg-gradient-to-r from-[#BFDBFE] to-[#2563EB] text-[#0F172A] font-bold shadow-lg shadow-[#BFDBFE]/20 transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed">{isSaving ? 'Menyimpan...' : 'Simpan'}</button>
         </div>
       </div>
     </div>
@@ -4373,7 +4373,7 @@ function InputField({ label, type, value, onChange, placeholder, step, required,
       <label className="block text-[10px] font-bold text-[#0F172A] mb-1.5 uppercase tracking-wider">{label}</label>
       <input 
         type={type} value={value} onChange={onChange} placeholder={placeholder} step={step} required={required}
-        className={`w-full bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-3 py-3.5 text-[#0F172A] text-sm focus:outline-none transition-colors placeholder:text-[#94A3B8] ${activeColor || 'focus:border-[#14B8A6]'}`}
+        className={`w-full bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-3 py-3.5 text-[#0F172A] text-sm focus:outline-none transition-colors placeholder:text-[#94A3B8] ${activeColor || 'focus:border-[#2563EB]'}`}
       />
     </div>
   );
@@ -4385,7 +4385,7 @@ function SelectField({ label, value, onChange, options, activeColor }) {
       <label className="block text-[10px] font-bold text-[#0F172A] mb-1.5 uppercase tracking-wider">{label}</label>
       <select 
         value={value} onChange={onChange}
-        className={`w-full bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-3 py-3.5 text-[#0F172A] text-sm focus:outline-none transition-colors appearance-none ${activeColor || 'focus:border-[#14B8A6]'}`}
+        className={`w-full bg-[#F5F7F9] border border-[#CBD5E1] rounded-xl px-3 py-3.5 text-[#0F172A] text-sm focus:outline-none transition-colors appearance-none ${activeColor || 'focus:border-[#2563EB]'}`}
       >
         {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
       </select>
@@ -4393,10 +4393,10 @@ function SelectField({ label, value, onChange, options, activeColor }) {
   );
 }
 
-function SliderField({ label, value, onChange, invertColors = false, accentColor = 'accent-[#99F6E4]' }) {
+function SliderField({ label, value, onChange, invertColors = false, accentColor = 'accent-[#BFDBFE]' }) {
   const numVal = parseInt(value);
   let colorClass = 'text-yellow-400';
-  if (numVal < 4) colorClass = 'text-[#14B8A6]';
+  if (numVal < 4) colorClass = 'text-[#2563EB]';
   else if (numVal > 7) colorClass = 'text-[#d07573]';
 
   return (
@@ -4524,7 +4524,7 @@ function SliderField({ label, value, onChange, invertColors = false, accentColor
               {formatDateShort(latestRun.date)} — {latestRun.category || 'Run'} {latest.distance.toFixed(1)} km — {latest.pace > 0 ? `${formatPaceTicker(latest.pace)}/km` : 'pace belum ada'}
             </p>
           </div>
-          <div className={`min-w-[94px] rounded-xl border px-3 py-2 text-right shadow-sm ${previous ? (distanceDelta >= 0 ? 'border-[#134e4a] bg-[#082f2b] text-[#86efac]' : 'border-[#4b5563] bg-[#111827] text-[#cbd5e1]') : 'border-[#334155] bg-[#111827] text-[#cbd5e1]'}`}>
+          <div className={`min-w-[94px] rounded-xl border px-3 py-2 text-right shadow-sm ${previous ? (distanceDelta >= 0 ? 'border-[#1E3A8A] bg-[#082f2b] text-[#86efac]' : 'border-[#4b5563] bg-[#111827] text-[#cbd5e1]') : 'border-[#334155] bg-[#111827] text-[#cbd5e1]'}`}>
             <div className="text-sm font-black leading-none">{deltaLabel}</div>
             <div className="mt-1 text-[10px] font-bold tracking-wide uppercase opacity-80">{deltaSub}</div>
           </div>

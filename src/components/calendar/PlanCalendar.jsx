@@ -23,8 +23,8 @@ const lastRaceKey = racePlan.race.dates[racePlan.race.dates.length - 1];
 const raceMonth = parseDateKey(lastRaceKey);
 
 function Marker({ kind, done }) {
-  const base = kind === 'run' ? 'rounded-full border-[#0F766E]' : 'rounded-[2px] border-[#334155]';
-  const fill = done ? (kind === 'run' ? 'bg-[#0F766E]' : 'bg-[#334155]') : 'bg-transparent';
+  const base = kind === 'run' ? 'rounded-full border-[#1D4ED8]' : 'rounded-[2px] border-[#334155]';
+  const fill = done ? (kind === 'run' ? 'bg-[#1D4ED8]' : 'bg-[#334155]') : 'bg-transparent';
   return <span aria-hidden="true" className={`inline-block h-2 w-2 border-[1.5px] ${base} ${fill}`} />;
 }
 
@@ -53,7 +53,7 @@ export default function PlanCalendar({ workouts, plannedSessions }) {
   };
   const changeMonth = delta => goToMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1));
 
-  const iconButton = 'inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6] disabled:opacity-40';
+  const iconButton = 'inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] disabled:opacity-40';
 
   return (
     <div className="space-y-5">
@@ -65,7 +65,7 @@ export default function PlanCalendar({ workouts, plannedSessions }) {
         </p>
         <p className="mt-1 text-xs leading-5 text-[#64748B]">{racePlan.race.dateNote}</p>
         {currentPhase && todayWeek && (
-          <p className="mt-2 text-sm font-bold text-[#0F766E]">
+          <p className="mt-2 text-sm font-bold text-[#1D4ED8]">
             Sekarang: {currentPhase.name} · minggu {todayWeek} dari {totalWeeks}
           </p>
         )}
@@ -105,12 +105,12 @@ export default function PlanCalendar({ workouts, plannedSessions }) {
                 aria-pressed={isSelected}
                 aria-current={isToday ? 'date' : undefined}
                 aria-label={`${longDate(cell.date)}${cell.isRace ? ', hari lomba' : ''}${count ? `, ${count} sesi` : ''}`}
-                className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-lg border text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6] ${tint} ${isSelected ? 'border-[#0F766E] ring-1 ring-[#0F766E]' : isToday ? 'border-[#0F172A]' : 'border-[#E2E8F0]'} ${count || cell.isRace ? 'font-bold text-[#0F172A]' : 'text-[#64748B]'}`}
+                className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-lg border text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] ${tint} ${isSelected ? 'border-[#1D4ED8] ring-1 ring-[#1D4ED8]' : isToday ? 'border-[#0F172A]' : 'border-[#E2E8F0]'} ${count || cell.isRace ? 'font-bold text-[#0F172A]' : 'text-[#64748B]'}`}
               >
                 <span>{cell.day}</span>
                 <span className="flex h-3 items-center gap-1">
                   {cell.isRace && <Flag size={12} className="text-[#0F172A]" aria-hidden="true" />}
-                  {cell.milestone && <Target size={12} className="text-[#0F766E]" aria-hidden="true" />}
+                  {cell.milestone && <Target size={12} className="text-[#1D4ED8]" aria-hidden="true" />}
                   {runs.slice(0, 2).map((done, i) => <Marker key={`r${i}`} kind="run" done={done} />)}
                   {gyms.slice(0, 2).map((done, i) => <Marker key={`g${i}`} kind="gym" done={done} />)}
                 </span>
@@ -138,7 +138,7 @@ export default function PlanCalendar({ workouts, plannedSessions }) {
             {selectedCell.milestone && <p className="mt-2 text-[#334155]"><strong>{selectedCell.milestone.title}.</strong> {selectedCell.milestone.note}</p>}
             {selectedCell.done.length > 0 && (
               <div className="mt-2">
-                <p className="text-xs font-bold text-[#0F766E]">Tercatat</p>
+                <p className="text-xs font-bold text-[#1D4ED8]">Tercatat</p>
                 <ul className="mt-1 space-y-1 text-[#334155]">
                   {selectedCell.done.map((w, i) => (
                     <li key={w.id || i}>
@@ -190,10 +190,10 @@ export default function PlanCalendar({ workouts, plannedSessions }) {
                 <button
                   type="button"
                   onClick={() => { goToMonth(parseDateKey(phase.start)); setSelected(phase.start); }}
-                  className="block min-h-11 w-full px-3 py-3 text-left hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#14B8A6]"
+                  className="block min-h-11 w-full px-3 py-3 text-left hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2563EB]"
                 >
                   <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-                    <span className="text-sm font-bold text-[#0F172A]">{phase.name}{active && <span className="ml-2 text-xs font-bold text-[#0F766E]">Sekarang</span>}</span>
+                    <span className="text-sm font-bold text-[#0F172A]">{phase.name}{active && <span className="ml-2 text-xs font-bold text-[#1D4ED8]">Sekarang</span>}</span>
                     <span className="text-xs text-[#64748B]">{shortDate(phase.start)} - {shortDate(phase.end)}</span>
                   </span>
                   <span className="mt-1 block text-xs text-[#334155]">

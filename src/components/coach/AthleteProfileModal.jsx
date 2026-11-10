@@ -62,7 +62,7 @@ export default function AthleteProfileModal({ profile, onSave, onClose }) {
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-5 py-4 border-b border-[#DCE3EA] rounded-t-3xl">
           <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-[#14B8A6]" />
+            <User className="w-5 h-5 text-[#2563EB]" />
             <h2 className="text-base font-black text-[#0F172A]">Athlete Profile</h2>
           </div>
           <button onClick={onClose} className="p-1.5 text-[#64748B] hover:text-[#e11d48] rounded-lg transition-colors">
@@ -79,7 +79,7 @@ export default function AthleteProfileModal({ profile, onSave, onClose }) {
           )}
 
           {/* Section: Athlete */}
-          <Section icon={<User className="w-4 h-4 text-[#14B8A6]" />} title="Athlete">
+          <Section icon={<User className="w-4 h-4 text-[#2563EB]" />} title="Athlete">
             <TextField
               label="Name"
               value={form.name}
@@ -134,7 +134,7 @@ export default function AthleteProfileModal({ profile, onSave, onClose }) {
           </Section>
 
           {/* Section: Weekly Availability */}
-          <Section icon={<Heart className="w-4 h-4 text-[#14B8A6]" />} title="Weekly Availability">
+          <Section icon={<Heart className="w-4 h-4 text-[#2563EB]" />} title="Weekly Availability">
             <div className="flex items-center gap-3">
               <input
                 type="range"
@@ -142,7 +142,7 @@ export default function AthleteProfileModal({ profile, onSave, onClose }) {
                 max="7"
                 value={form.weeklyAvailability}
                 onChange={e => updateField('weeklyAvailability', e.target.value)}
-                className="flex-1 accent-[#14B8A6]"
+                className="flex-1 accent-[#2563EB]"
               />
               <span className="text-sm font-black text-[#0F172A] min-w-[2ch] text-center">
                 {form.weeklyAvailability}
@@ -180,7 +180,7 @@ export default function AthleteProfileModal({ profile, onSave, onClose }) {
           </Section>
 
           {/* Section: Coaching Style */}
-          <Section icon={<BrainCircuit className="w-4 h-4 text-[#14B8A6]" />} title="Coaching Style">
+          <Section icon={<BrainCircuit className="w-4 h-4 text-[#2563EB]" />} title="Coaching Style">
             <TextAreaField
               label="Coaching Philosophy"
               value={form.coachingPhilosophy}
@@ -249,7 +249,7 @@ function TextField({ label, value, onChange, placeholder, type = 'text', require
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-medium focus:border-[#14B8A6] outline-none transition-colors"
+        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-medium focus:border-[#2563EB] outline-none transition-colors"
       />
     </div>
   );
@@ -266,7 +266,7 @@ function TextAreaField({ label, value, onChange, placeholder }) {
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={3}
-        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-medium focus:border-[#14B8A6] outline-none transition-colors resize-none"
+        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-medium focus:border-[#2563EB] outline-none transition-colors resize-none"
       />
     </div>
   );
@@ -281,7 +281,7 @@ function SelectField({ label, value, onChange, options }) {
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:border-[#14B8A6] outline-none transition-colors appearance-none"
+        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-sm text-[#0F172A] font-bold focus:border-[#2563EB] outline-none transition-colors appearance-none"
       >
         {options.map(opt => (
           <option key={opt} value={opt}>{opt}</option>
