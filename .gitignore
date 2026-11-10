@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Personal training data (not for GitHub)
+Latihan/

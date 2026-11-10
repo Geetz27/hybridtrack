@@ -27,6 +27,7 @@ import { getFirestore, collection, onSnapshot, setDoc, doc, deleteDoc, updateDoc
 const VolumeTrendChart = React.lazy(() => import('./components/dashboard/VolumeTrendChart'));
 const PaceTrendChart = React.lazy(() => import('./components/dashboard/PaceTrendChart'));
 const PersonalRecords = React.lazy(() => import('./components/dashboard/PersonalRecords'));
+const PlanCalendar = React.lazy(() => import('./components/calendar/PlanCalendar'));
 
 function DashboardFallback() {
   return <div className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-700" />;
@@ -1027,6 +1028,16 @@ export default function App() {
     return weeklyPlan;
   }, [weeklyPlan]);
 
+  // Sessions of the active block with their calendar date, for the Kalender tab.
+  const plannedSessions = useMemo(() => {
+    const block = activeTrainingBlock?.trainingBlock;
+    if (!block || !Array.isArray(block.sessions)) return [];
+    return [...block.sessions]
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map((session, index) => ({ session, dateKey: getTrainingSessionDateKey(block, session, index) }))
+      .filter(item => item.dateKey);
+  }, [activeTrainingBlock]);
+
   // --- 5. FUNGSI LOGIN / LOGOUT ---
   const loginWithGoogle = async () => {
     try {
@@ -1214,6 +1225,11 @@ export default function App() {
             }}
           />
         )}
+        {activeTab === 'calendar' && (
+          <Suspense fallback={<DashboardFallback />}>
+            <PlanCalendar workouts={workouts} plannedSessions={plannedSessions} />
+          </Suspense>
+        )}
         {activeTab === 'history' && <History workouts={workouts} onDelete={handleDelete} onEdit={(w) => setEditModal(w)} />}
         {activeTab === 'plan' && <WeeklyPlanTab weeklyPlan={weeklyPlan} setWeeklyPlan={setWeeklyPlan} workouts={workouts} user={user} activeTrainingBlock={activeTrainingBlock} />}
       </main>
@@ -1223,6 +1239,7 @@ export default function App() {
         <div className="max-w-md md:max-w-5xl mx-auto flex justify-around items-center h-20 md:h-12 px-2 pb-2 md:pb-0">
           <NavButton icon={<Activity />} label="Dasbor" isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <NavButton icon={<ClipboardList />} label="Program" isActive={activeTab === 'plan'} onClick={() => setActiveTab('plan')} />
+          <NavButton icon={<CalendarDays />} label="Kalender" isActive={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} />
           <NavButton icon={<PlusCircle />} label="Input" isActive={activeTab === 'add'} onClick={() => setActiveTab('add')} highlight />
           <NavButton icon={<List />} label="Riwayat" isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />
         </div>

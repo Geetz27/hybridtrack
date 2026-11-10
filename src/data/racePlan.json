@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "updated": "2026-11-09",
+  "note": "Peta fase kasar sampai half marathon. Angka km dan long run adalah perkiraan, bukan janji. Detail per minggu diisi lewat blok 8 minggu dan disesuaikan dengan tidur, nyeri, dan panas.",
+  "race": {
+    "name": "Half marathon",
+    "dates": ["2027-10-21", "2027-10-24"],
+    "dateNote": "Tanggal belum pasti: 21 atau 24 Okt 2027. Niat target sub 1:50 (agresif, belum terbukti); ditinjau ulang setelah tes 10K 25 Apr."
+  },
+  "phases": [
+    {
+      "id": "recovery",
+      "name": "Pemulihan",
+      "start": "2026-11-09",
+      "end": "2026-11-15",
+      "weeklyKm": [10, 12],
+      "longRunKm": null,
+      "focus": "Pulih pasca-Bayrun. Easy saja, tanpa interval dan tanpa leg day."
+    },
+    {
+      "id": "base-1",
+      "name": "Base 1",
+      "start": "2026-11-16",
+      "end": "2027-01-10",
+      "weeklyKm": [20, 27],
+      "longRunKm": [10, 14],
+      "focus": "Naikkan volume pelan-pelan. Mulai leg dan plyometrik ringan. Latih pacing dengan alert."
+    },
+    {
+      "id": "base-2",
+      "name": "Base 2",
+      "start": "2027-01-11",
+      "end": "2027-03-07",
+      "weeklyKm": [26, 32],
+      "longRunKm": [13, 16],
+      "focus": "Volume stabil. Blok tempo kontinu pendek. Kekuatan kaki berlanjut."
+    },
+    {
+      "id": "build-1",
+      "name": "Build 1",
+      "start": "2027-03-08",
+      "end": "2027-05-02",
+      "weeklyKm": [30, 36],
+      "longRunKm": [15, 18],
+      "focus": "Tempo lebih panjang. Tes 10K di akhir April untuk menetapkan target half."
+    },
+    {
+      "id": "build-2",
+      "name": "Build 2",
+      "start": "2027-05-03",
+      "end": "2027-06-27",
+      "weeklyKm": [32, 38],
+      "longRunKm": [16, 19],
+      "focus": "Perpanjang blok tempo. Long run dengan bagian di pace half."
+    },
+    {
+      "id": "specific-1",
+      "name": "Spesifik 1",
+      "start": "2027-06-28",
+      "end": "2027-08-22",
+      "weeklyKm": [34, 40],
+      "longRunKm": [17, 20],
+      "focus": "Blok di pace half marathon. Latihan pagi awal untuk toleransi panas."
+    },
+    {
+      "id": "specific-2",
+      "name": "Spesifik 2",
+      "start": "2027-08-23",
+      "end": "2027-10-10",
+      "weeklyKm": [36, 42],
+      "longRunKm": [18, 20],
+      "focus": "Puncak volume. Gladi pacing dan fueling di long run."
+    },
+    {
+      "id": "taper",
+      "name": "Taper",
+      "start": "2027-10-11",
+      "end": "2027-10-24",
+      "weeklyKm": [20, 32],
+      "longRunKm": null,
+      "focus": "Kurangi volume, jaga sedikit intensitas, kaki segar di hari lomba."
+    }
+  ],
+  "milestones": [
+    {
+      "date": "2027-04-25",
+      "title": "Tes 10K",
+      "note": "Dipakai untuk menetapkan target waktu half marathon."
+    }
+  ]
+}
