@@ -1,0 +1,1551 @@
+{
+  "source": "Latihan/program/Half2027_Base1_W*.json (jarak lari per sesi, tempo sudah termasuk warm-up dan cooldown)",
+  "phaseId": "base-1",
+  "weeks": [
+    {
+      "n": 1,
+      "start": "2026-11-16",
+      "light": false,
+      "runs": [
+        {
+          "label": "Tempo",
+          "km": 5.5
+        },
+        {
+          "label": "Easy",
+          "km": 5
+        },
+        {
+          "label": "Long run",
+          "km": 10
+        }
+      ],
+      "sessions": [
+        {
+          "date": "2026-11-16",
+          "type": "Run",
+          "title": "Tempo 2 x 8 menit @ 5:50-5:55",
+          "description": "Warm-up 1,5 km easy, drills, 2 strides santai. 2 x 8 menit @ 5:50-5:55/km, jog 2 menit. Cooldown 1 km.",
+          "coachNotes": "Sesi keras pertama setelah minggu pemulihan. Rep 1 tidak boleh lebih cepat dari 5:50. Kalau kaki berat atau ada nyeri, ganti easy 5 km.",
+          "km": 5.5,
+          "notes": "5:50-5:55/km, RPE 6, pace alert 5:48-5:58, sepatu 910 Haze Tempo. Panas: longgarkan 5-10 detik/km."
+        },
+        {
+          "date": "2026-11-17",
+          "type": "Strength",
+          "title": "Push",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 18,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 16,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Triceps Pushdown",
+              "sets": 3,
+              "reps": 10,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 3,
+              "reps": 12,
+              "weight": 6,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-11-18",
+          "type": "Strength",
+          "title": "Leg + plyometrik (50 kontak)",
+          "description": "Plyometrik dulu saat kaki segar (~50 kontak), lalu kekuatan kaki. Sekitar 40 menit.",
+          "coachNotes": "Mulai hanya kalau kaki bebas nyeri dan gerak tidak terbatas. Kalau tidak, ganti istirahat. Satu gerakan baru per minggu, jangan lebih.",
+          "exercises": [
+            {
+              "name": "Pogo Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak, ringan, kontak tanah singkat"
+            },
+            {
+              "name": "Line Hop",
+              "sets": 2,
+              "reps": 10,
+              "weight": 0,
+              "notes": "20 kontak, total 50"
+            },
+            {
+              "name": "Leg Press",
+              "sets": 2,
+              "reps": 8,
+              "weight": 50,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Standing Calf Raise (DB)",
+              "sets": 2,
+              "reps": 12,
+              "weight": 17.5,
+              "notes": "Pelan, turun penuh"
+            },
+            {
+              "name": "Single Leg RDL (KB)",
+              "sets": 2,
+              "reps": 8,
+              "weight": 6,
+              "notes": "Fokus keseimbangan"
+            }
+          ]
+        },
+        {
+          "date": "2026-11-19",
+          "type": "Strength",
+          "title": "Pull",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline DB Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 10,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 14,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 3,
+              "reps": 12,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-11-20",
+          "type": "Run",
+          "title": "Easy 5 km",
+          "description": "Easy 5 km @ 7:00-7:30/km, RPE 2-3, HR di bawah 150. Hyperblast 2.1.",
+          "coachNotes": "Jangan jadi tempo. Km 2 sering terlalu cepat. Kalau kaki berat dari Rabu, kurangi 1 km.",
+          "km": 5,
+          "notes": "7:00-7:30/km, RPE 2-3, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2026-11-21",
+          "type": "Run",
+          "title": "Long run 10 km",
+          "description": "Long run 10 km easy @ 7:00-7:30/km, HR di bawah 150 di paruh pertama. Mulai pagi (panas). Hyperblast 2.1.",
+          "coachNotes": "Long run pertama setelah Bayrun. Mulai pagi (panas). Km 1 pelan.",
+          "km": 10,
+          "notes": "7:00-7:30/km, RPE 3-4, sepatu Hyperblast 2.1. Tanpa fast finish."
+        },
+        {
+          "date": "2026-11-22",
+          "type": "Rest",
+          "title": "Rest total",
+          "description": "Tidak lari, tidak gym. Jalan santai boleh. Fokus tidur, hidrasi, makan cukup.",
+          "coachNotes": "Sesi yang terlewat tidak ditumpuk ke hari lain."
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "start": "2026-11-23",
+      "light": false,
+      "runs": [
+        {
+          "label": "Tempo",
+          "km": 6.5
+        },
+        {
+          "label": "Easy",
+          "km": 5.5
+        },
+        {
+          "label": "Long run",
+          "km": 11
+        }
+      ],
+      "sessions": [
+        {
+          "date": "2026-11-23",
+          "type": "Run",
+          "title": "Tempo 2 x 10 menit @ 5:45-5:50",
+          "description": "Warm-up 1,5 km, drills, 2 strides. 2 x 10 menit @ 5:45-5:50/km, jog 2 menit. Cooldown 1,2 km.",
+          "coachNotes": "Rep 1 tidak boleh lebih cepat dari 5:45. Cek HR: kalau sudah di atas 165 di rep 1, pace terlalu cepat.",
+          "km": 6.5,
+          "notes": "5:45-5:50/km, RPE 6, pace alert 5:43-5:53, sepatu 910 Haze Tempo. Panas: longgarkan 5-10 detik/km."
+        },
+        {
+          "date": "2026-11-24",
+          "type": "Strength",
+          "title": "Push",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 18,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 16,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Triceps Pushdown",
+              "sets": 3,
+              "reps": 10,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 3,
+              "reps": 12,
+              "weight": 6,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-11-25",
+          "type": "Strength",
+          "title": "Leg + plyometrik (60 kontak)",
+          "description": "Plyometrik dulu saat kaki segar (~60 kontak), lalu kekuatan kaki. Sekitar 40 menit.",
+          "coachNotes": "Satu gerakan baru: Bulgarian split squat. Beban tetap.",
+          "exercises": [
+            {
+              "name": "Pogo Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak"
+            },
+            {
+              "name": "Line Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak, total 60"
+            },
+            {
+              "name": "Leg Press",
+              "sets": 2,
+              "reps": 8,
+              "weight": 50,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Standing Calf Raise (DB)",
+              "sets": 2,
+              "reps": 12,
+              "weight": 17.5,
+              "notes": "Pelan, turun penuh"
+            },
+            {
+              "name": "Single Leg RDL (KB)",
+              "sets": 2,
+              "reps": 8,
+              "weight": 6,
+              "notes": "Fokus keseimbangan"
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "sets": 2,
+              "reps": 8,
+              "weight": 3,
+              "notes": "Gerakan baru minggu ini, per kaki"
+            }
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "type": "Strength",
+          "title": "Pull",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline DB Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 10,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 14,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 3,
+              "reps": 12,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "type": "Run",
+          "title": "Easy 5,5 km",
+          "description": "Easy 5,5 km @ 7:00-7:30/km, RPE 2-3, HR di bawah 150. Hyperblast 2.1.",
+          "coachNotes": "Jangan jadi tempo. Km 2 sering terlalu cepat. Kalau kaki berat dari Rabu, kurangi 1 km.",
+          "km": 5.5,
+          "notes": "7:00-7:30/km, RPE 2-3, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2026-11-28",
+          "type": "Run",
+          "title": "Long run 11 km",
+          "description": "Long run 11 km easy @ 7:00-7:30/km, HR di bawah 150 di paruh pertama. Mulai pagi (panas). Hyperblast 2.1.",
+          "coachNotes": "+1 km dari minggu lalu. Pace tetap easy, jangan mempercepat akhir.",
+          "km": 11,
+          "notes": "7:00-7:30/km, RPE 3-4, sepatu Hyperblast 2.1. Tanpa fast finish."
+        },
+        {
+          "date": "2026-11-29",
+          "type": "Rest",
+          "title": "Rest total",
+          "description": "Tidak lari, tidak gym. Jalan santai boleh. Fokus tidur, hidrasi, makan cukup.",
+          "coachNotes": "Sesi yang terlewat tidak ditumpuk ke hari lain."
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "start": "2026-11-30",
+      "light": false,
+      "runs": [
+        {
+          "label": "Tempo",
+          "km": 8
+        },
+        {
+          "label": "Easy",
+          "km": 6
+        },
+        {
+          "label": "Long run",
+          "km": 12
+        }
+      ],
+      "sessions": [
+        {
+          "date": "2026-11-30",
+          "type": "Run",
+          "title": "Tempo 3 x 10 menit @ 5:45-5:50",
+          "description": "Warm-up 1,5 km, drills, 2 strides. 3 x 10 menit @ 5:45-5:50/km, jog 2 menit. Cooldown 1 km.",
+          "coachNotes": "Ini sesi terberat blok sejauh ini. Jaga pace rata di ketiga rep. Kalau rep 3 jatuh lebih dari 8 detik/km, berhenti di 2 rep.",
+          "km": 8,
+          "notes": "5:45-5:50/km, RPE 6, pace alert 5:43-5:53, sepatu 910 Haze Tempo. Panas: longgarkan 5-10 detik/km."
+        },
+        {
+          "date": "2026-12-01",
+          "type": "Strength",
+          "title": "Push",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 18,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 16,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Triceps Pushdown",
+              "sets": 3,
+              "reps": 10,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 3,
+              "reps": 12,
+              "weight": 6,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-02",
+          "type": "Strength",
+          "title": "Leg + plyometrik (72 kontak)",
+          "description": "Plyometrik dulu saat kaki segar (~72 kontak), lalu kekuatan kaki. Sekitar 40 menit.",
+          "coachNotes": "Satu gerakan baru: tibialis raise. Leg press dan calf naik satu set.",
+          "exercises": [
+            {
+              "name": "Pogo Hop",
+              "sets": 3,
+              "reps": 12,
+              "weight": 0,
+              "notes": "36 kontak"
+            },
+            {
+              "name": "Line Hop",
+              "sets": 3,
+              "reps": 12,
+              "weight": 0,
+              "notes": "36 kontak, total 72"
+            },
+            {
+              "name": "Leg Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 55,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Standing Calf Raise (DB)",
+              "sets": 3,
+              "reps": 12,
+              "weight": 17.5,
+              "notes": "Pelan, turun penuh"
+            },
+            {
+              "name": "Single Leg RDL (KB)",
+              "sets": 3,
+              "reps": 8,
+              "weight": 6,
+              "notes": "Fokus keseimbangan"
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "sets": 2,
+              "reps": 8,
+              "weight": 3,
+              "notes": "Per kaki"
+            },
+            {
+              "name": "Tibialis Raise",
+              "sets": 2,
+              "reps": 10,
+              "weight": 6,
+              "notes": "Gerakan baru minggu ini"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-03",
+          "type": "Strength",
+          "title": "Pull",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline DB Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 10,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 14,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 3,
+              "reps": 12,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-04",
+          "type": "Run",
+          "title": "Easy 6 km",
+          "description": "Easy 6 km @ 7:00-7:30/km, RPE 2-3, HR di bawah 150. Hyperblast 2.1.",
+          "coachNotes": "Jangan jadi tempo. Km 2 sering terlalu cepat. Kalau kaki berat dari Rabu, kurangi 1 km.",
+          "km": 6,
+          "notes": "7:00-7:30/km, RPE 2-3, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2026-12-05",
+          "type": "Run",
+          "title": "Long run 12 km",
+          "description": "Long run 12 km easy @ 7:00-7:30/km, HR di bawah 150 di paruh pertama. Mulai pagi (panas). Hyperblast 2.1.",
+          "coachNotes": "+1 km. Kalau HR drift di atas 160 sebelum km 10, perlambat.",
+          "km": 12,
+          "notes": "7:00-7:30/km, RPE 3-4, sepatu Hyperblast 2.1. Tanpa fast finish."
+        },
+        {
+          "date": "2026-12-06",
+          "type": "Rest",
+          "title": "Rest total",
+          "description": "Tidak lari, tidak gym. Jalan santai boleh. Fokus tidur, hidrasi, makan cukup.",
+          "coachNotes": "Sesi yang terlewat tidak ditumpuk ke hari lain."
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "start": "2026-12-07",
+      "light": true,
+      "runs": [
+        {
+          "label": "Easy",
+          "km": 5.5
+        },
+        {
+          "label": "Easy",
+          "km": 5
+        },
+        {
+          "label": "Long run",
+          "km": 10
+        }
+      ],
+      "sessions": [
+        {
+          "date": "2026-12-07",
+          "type": "Run",
+          "title": "Easy + strides (minggu ringan)",
+          "description": "Easy 4,5 km @ 7:00-7:30/km, lalu 5 x 20 detik strides santai dengan jalan 60 detik. Tidak ada tempo minggu ini.",
+          "coachNotes": "Minggu ringan: volume turun, kaki menyerap beban 3 minggu terakhir. Jangan tambah apa pun.",
+          "km": 5.5,
+          "notes": "7:00-7:30/km, RPE 2-3, HR di bawah 150, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2026-12-08",
+          "type": "Strength",
+          "title": "Push ringan",
+          "description": "25-30 menit, RPE maks 6, tidak ada set sampai gagal.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Dumbbell Chest Press",
+              "sets": 2,
+              "reps": 8,
+              "weight": 18,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Incline Dumbbell Chest Press",
+              "sets": 2,
+              "reps": 8,
+              "weight": 16,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Triceps Pushdown",
+              "sets": 2,
+              "reps": 10,
+              "weight": 36,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 2,
+              "reps": 12,
+              "weight": 6,
+              "notes": "RPE maks 6"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-09",
+          "type": "Strength",
+          "title": "Leg + plyometrik (50 kontak)",
+          "description": "Plyometrik dulu saat kaki segar (~50 kontak), lalu kekuatan kaki. Sekitar 40 menit.",
+          "coachNotes": "Minggu ringan. Tidak ada gerakan baru, RPE maks 5.",
+          "exercises": [
+            {
+              "name": "Pogo Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak"
+            },
+            {
+              "name": "Line Hop",
+              "sets": 2,
+              "reps": 10,
+              "weight": 0,
+              "notes": "20 kontak, total 50"
+            },
+            {
+              "name": "Leg Press",
+              "sets": 2,
+              "reps": 8,
+              "weight": 55,
+              "notes": "RPE maks 5"
+            },
+            {
+              "name": "Standing Calf Raise (DB)",
+              "sets": 2,
+              "reps": 12,
+              "weight": 17.5,
+              "notes": "Ringan"
+            },
+            {
+              "name": "Single Leg RDL (KB)",
+              "sets": 2,
+              "reps": 8,
+              "weight": 6,
+              "notes": "Ringan"
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "sets": 2,
+              "reps": 8,
+              "weight": 3,
+              "notes": "Per kaki, ringan"
+            },
+            {
+              "name": "Tibialis Raise",
+              "sets": 2,
+              "reps": 10,
+              "weight": 6,
+              "notes": "Ringan"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-10",
+          "type": "Strength",
+          "title": "Pull ringan",
+          "description": "25-30 menit, RPE maks 6, tidak ada failure.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 2,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 2,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Incline DB Curl",
+              "sets": 2,
+              "reps": 8,
+              "weight": 10,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 2,
+              "reps": 8,
+              "weight": 14,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 2,
+              "reps": 12,
+              "weight": 36,
+              "notes": "RPE maks 6"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-11",
+          "type": "Run",
+          "title": "Easy 5 km",
+          "description": "Easy 5 km @ 7:00-7:30/km, RPE 2-3, HR di bawah 150. Hyperblast 2.1.",
+          "coachNotes": "Jangan jadi tempo. Km 2 sering terlalu cepat. Kalau kaki berat dari Rabu, kurangi 1 km.",
+          "km": 5,
+          "notes": "7:00-7:30/km, RPE 2-3, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2026-12-12",
+          "type": "Run",
+          "title": "Long run 10 km",
+          "description": "Long run 10 km easy @ 7:00-7:30/km, HR di bawah 150 di paruh pertama. Mulai pagi (panas). Hyperblast 2.1.",
+          "coachNotes": "Minggu ringan: kembali ke 10 km.",
+          "km": 10,
+          "notes": "7:00-7:30/km, RPE 3-4, sepatu Hyperblast 2.1. Tanpa fast finish."
+        },
+        {
+          "date": "2026-12-13",
+          "type": "Rest",
+          "title": "Rest total",
+          "description": "Tidak lari, tidak gym. Jalan santai boleh. Fokus tidur, hidrasi, makan cukup.",
+          "coachNotes": "Sesi yang terlewat tidak ditumpuk ke hari lain."
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "start": "2026-12-14",
+      "light": false,
+      "runs": [
+        {
+          "label": "Tempo",
+          "km": 8
+        },
+        {
+          "label": "Easy",
+          "km": 5.5
+        },
+        {
+          "label": "Long run",
+          "km": 12
+        }
+      ],
+      "sessions": [
+        {
+          "date": "2026-12-14",
+          "type": "Run",
+          "title": "Tempo 2 x 15 menit @ 5:40-5:45",
+          "description": "Warm-up 1,5 km, drills, 2 strides. 2 x 15 menit @ 5:40-5:45/km, jog 3 menit. Cooldown 1 km.",
+          "coachNotes": "Blok kontinu pertama yang panjang. Rep 1 tidak boleh lebih cepat dari 5:40. Pelajaran Bayrun: jangan bayar balik waktu yang hilang.",
+          "km": 8,
+          "notes": "5:40-5:45/km, RPE 6, pace alert 5:38-5:48, sepatu 910 Haze Tempo. Panas: longgarkan 5-10 detik/km."
+        },
+        {
+          "date": "2026-12-15",
+          "type": "Strength",
+          "title": "Push",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 18,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 16,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Triceps Pushdown",
+              "sets": 3,
+              "reps": 10,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 3,
+              "reps": 12,
+              "weight": 6,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-16",
+          "type": "Strength",
+          "title": "Leg + plyometrik (80 kontak)",
+          "description": "Plyometrik dulu saat kaki segar (~80 kontak), lalu kekuatan kaki. Sekitar 40 menit.",
+          "coachNotes": "Satu gerakan baru: reverse lunge. Kontak plyo naik ke 80.",
+          "exercises": [
+            {
+              "name": "Pogo Hop",
+              "sets": 4,
+              "reps": 10,
+              "weight": 0,
+              "notes": "40 kontak"
+            },
+            {
+              "name": "Line Hop",
+              "sets": 4,
+              "reps": 10,
+              "weight": 0,
+              "notes": "40 kontak, total 80"
+            },
+            {
+              "name": "Leg Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 60,
+              "notes": "RPE maks 7"
+            },
+            {
+              "name": "Standing Calf Raise (DB)",
+              "sets": 3,
+              "reps": 12,
+              "weight": 20,
+              "notes": "Pelan, turun penuh"
+            },
+            {
+              "name": "Single Leg RDL (KB)",
+              "sets": 3,
+              "reps": 8,
+              "weight": 8,
+              "notes": "Naik beban hanya kalau stabil"
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "sets": 2,
+              "reps": 8,
+              "weight": 4,
+              "notes": "Per kaki"
+            },
+            {
+              "name": "Tibialis Raise",
+              "sets": 2,
+              "reps": 10,
+              "weight": 6,
+              "notes": "Pelan"
+            },
+            {
+              "name": "Reverse Lunge",
+              "sets": 2,
+              "reps": 8,
+              "weight": 0,
+              "notes": "Gerakan baru minggu ini, berat badan"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-17",
+          "type": "Strength",
+          "title": "Pull",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline DB Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 10,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 14,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 3,
+              "reps": 12,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-18",
+          "type": "Run",
+          "title": "Easy 5,5 km",
+          "description": "Easy 5,5 km @ 7:00-7:30/km, RPE 2-3, HR di bawah 150. Hyperblast 2.1.",
+          "coachNotes": "Jangan jadi tempo. Km 2 sering terlalu cepat. Kalau kaki berat dari Rabu, kurangi 1 km.",
+          "km": 5.5,
+          "notes": "7:00-7:30/km, RPE 2-3, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2026-12-19",
+          "type": "Run",
+          "title": "Long run 12 km",
+          "description": "Long run 12 km easy @ 7:00-7:30/km, HR di bawah 150 di paruh pertama. Mulai pagi (panas). Hyperblast 2.1.",
+          "coachNotes": "Kembali naik. Tanpa fast finish.",
+          "km": 12,
+          "notes": "7:00-7:30/km, RPE 3-4, sepatu Hyperblast 2.1. Tanpa fast finish."
+        },
+        {
+          "date": "2026-12-20",
+          "type": "Rest",
+          "title": "Rest total",
+          "description": "Tidak lari, tidak gym. Jalan santai boleh. Fokus tidur, hidrasi, makan cukup.",
+          "coachNotes": "Sesi yang terlewat tidak ditumpuk ke hari lain."
+        }
+      ]
+    },
+    {
+      "n": 6,
+      "start": "2026-12-21",
+      "light": false,
+      "runs": [
+        {
+          "label": "Tempo",
+          "km": 7
+        },
+        {
+          "label": "Easy",
+          "km": 6
+        },
+        {
+          "label": "Long run",
+          "km": 14
+        }
+      ],
+      "sessions": [
+        {
+          "date": "2026-12-21",
+          "type": "Run",
+          "title": "Tempo 20 menit kontinu @ 5:40-5:45",
+          "description": "Warm-up 2 km, drills, 2 strides. 20 menit kontinu @ 5:40-5:45/km. Cooldown 1,5 km.",
+          "coachNotes": "Satu blok tanpa jeda. Km pertama sering terlalu cepat, tahan di 5:45.",
+          "km": 7,
+          "notes": "5:40-5:45/km, RPE 6, pace alert 5:38-5:48, sepatu 910 Haze Tempo. Panas: longgarkan 5-10 detik/km."
+        },
+        {
+          "date": "2026-12-22",
+          "type": "Strength",
+          "title": "Push",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 18,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 16,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Triceps Pushdown",
+              "sets": 3,
+              "reps": 10,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 3,
+              "reps": 12,
+              "weight": 6,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-23",
+          "type": "Strength",
+          "title": "Leg + plyometrik (90 kontak)",
+          "description": "Plyometrik dulu saat kaki segar (~90 kontak), lalu kekuatan kaki. Sekitar 40 menit.",
+          "coachNotes": "Satu gerakan baru: lateral hop. Kontak plyo 90. Turunkan kalau lari Senin terasa berat di betis.",
+          "exercises": [
+            {
+              "name": "Pogo Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak"
+            },
+            {
+              "name": "Line Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak"
+            },
+            {
+              "name": "Lateral Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "Gerakan baru minggu ini, 30 kontak, total 90"
+            },
+            {
+              "name": "Leg Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 60,
+              "notes": "RPE maks 7"
+            },
+            {
+              "name": "Standing Calf Raise (DB)",
+              "sets": 3,
+              "reps": 12,
+              "weight": 20,
+              "notes": "Pelan, turun penuh"
+            },
+            {
+              "name": "Single Leg RDL (KB)",
+              "sets": 3,
+              "reps": 8,
+              "weight": 8,
+              "notes": "Fokus keseimbangan"
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "sets": 2,
+              "reps": 8,
+              "weight": 4,
+              "notes": "Per kaki"
+            },
+            {
+              "name": "Reverse Lunge",
+              "sets": 2,
+              "reps": 8,
+              "weight": 0,
+              "notes": "Berat badan"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-24",
+          "type": "Strength",
+          "title": "Pull",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline DB Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 10,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 14,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 3,
+              "reps": 12,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-25",
+          "type": "Run",
+          "title": "Easy 6 km",
+          "description": "Easy 6 km @ 7:00-7:30/km, RPE 2-3, HR di bawah 150. Hyperblast 2.1.",
+          "coachNotes": "Jangan jadi tempo. Km 2 sering terlalu cepat. Kalau kaki berat dari Rabu, kurangi 1 km.",
+          "km": 6,
+          "notes": "7:00-7:30/km, RPE 2-3, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2026-12-26",
+          "type": "Run",
+          "title": "Long run 14 km",
+          "description": "Long run 14 km easy @ 7:00-7:30/km, HR di bawah 150 di paruh pertama. Mulai pagi (panas). Hyperblast 2.1.",
+          "coachNotes": "Long run 14 km. Tes fueling: sedikit karbohidrat (madu atau gel) sekitar km 8-10, catat reaksi perut.",
+          "km": 14,
+          "notes": "7:00-7:30/km, RPE 3-4, sepatu Hyperblast 2.1. Tanpa fast finish."
+        },
+        {
+          "date": "2026-12-27",
+          "type": "Rest",
+          "title": "Rest total",
+          "description": "Tidak lari, tidak gym. Jalan santai boleh. Fokus tidur, hidrasi, makan cukup.",
+          "coachNotes": "Sesi yang terlewat tidak ditumpuk ke hari lain."
+        }
+      ]
+    },
+    {
+      "n": 7,
+      "start": "2026-12-28",
+      "light": false,
+      "runs": [
+        {
+          "label": "Tempo",
+          "km": 7.5
+        },
+        {
+          "label": "Easy",
+          "km": 5.5
+        },
+        {
+          "label": "Long run",
+          "km": 14
+        }
+      ],
+      "sessions": [
+        {
+          "date": "2026-12-28",
+          "type": "Run",
+          "title": "Tempo 25 menit kontinu @ 5:40-5:45",
+          "description": "Warm-up 2 km, drills, 2 strides. 25 menit kontinu @ 5:40-5:45/km. Cooldown 1,2 km.",
+          "coachNotes": "Puncak blok tempo. Kalau panas atau tidur kurang, longgarkan 5-10 detik/km atau potong jadi 20 menit.",
+          "km": 7.5,
+          "notes": "5:40-5:45/km, RPE 6, pace alert 5:38-5:48, sepatu 910 Haze Tempo. Panas: longgarkan 5-10 detik/km."
+        },
+        {
+          "date": "2026-12-29",
+          "type": "Strength",
+          "title": "Push",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 18,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline Dumbbell Chest Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 16,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Triceps Pushdown",
+              "sets": 3,
+              "reps": 10,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 3,
+              "reps": 12,
+              "weight": 6,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-30",
+          "type": "Strength",
+          "title": "Leg + plyometrik (100 kontak)",
+          "description": "Plyometrik dulu saat kaki segar (~100 kontak), lalu kekuatan kaki. Sekitar 40 menit.",
+          "coachNotes": "Satu gerakan baru: glute bridge. Kontak plyo 100, puncak blok.",
+          "exercises": [
+            {
+              "name": "Pogo Hop",
+              "sets": 4,
+              "reps": 10,
+              "weight": 0,
+              "notes": "40 kontak"
+            },
+            {
+              "name": "Line Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak"
+            },
+            {
+              "name": "Lateral Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak, total 100"
+            },
+            {
+              "name": "Leg Press",
+              "sets": 3,
+              "reps": 8,
+              "weight": 65,
+              "notes": "RPE maks 7"
+            },
+            {
+              "name": "Standing Calf Raise (DB)",
+              "sets": 3,
+              "reps": 12,
+              "weight": 20,
+              "notes": "Pelan, turun penuh"
+            },
+            {
+              "name": "Single Leg RDL (KB)",
+              "sets": 3,
+              "reps": 8,
+              "weight": 8,
+              "notes": "Fokus keseimbangan"
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "sets": 2,
+              "reps": 8,
+              "weight": 4,
+              "notes": "Per kaki"
+            },
+            {
+              "name": "Glute Bridge",
+              "sets": 2,
+              "reps": 10,
+              "weight": 0,
+              "notes": "Gerakan baru minggu ini, berat badan"
+            }
+          ]
+        },
+        {
+          "date": "2026-12-31",
+          "type": "Strength",
+          "title": "Pull",
+          "description": "35-40 menit, RPE maks 7, sisakan 2 repetisi.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 3,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Incline DB Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 10,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 3,
+              "reps": 8,
+              "weight": 14,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 3,
+              "reps": 12,
+              "weight": 36,
+              "notes": "RPE maks 7, sisakan 2 repetisi"
+            }
+          ]
+        },
+        {
+          "date": "2027-01-01",
+          "type": "Run",
+          "title": "Easy 5,5 km",
+          "description": "Easy 5,5 km @ 7:00-7:30/km, RPE 2-3, HR di bawah 150. Hyperblast 2.1.",
+          "coachNotes": "Jangan jadi tempo. Km 2 sering terlalu cepat. Kalau kaki berat dari Rabu, kurangi 1 km.",
+          "km": 5.5,
+          "notes": "7:00-7:30/km, RPE 2-3, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2027-01-02",
+          "type": "Run",
+          "title": "Long run 14 km",
+          "description": "Long run 14 km easy @ 7:00-7:30/km, HR di bawah 150 di paruh pertama. Mulai pagi (panas). Hyperblast 2.1.",
+          "coachNotes": "Tahan di 14 km. Ulangi tes fueling kalau minggu lalu perut tidak nyaman. Tanpa fast finish.",
+          "km": 14,
+          "notes": "7:00-7:30/km, RPE 3-4, sepatu Hyperblast 2.1. Tanpa fast finish."
+        },
+        {
+          "date": "2027-01-03",
+          "type": "Rest",
+          "title": "Rest total",
+          "description": "Tidak lari, tidak gym. Jalan santai boleh. Fokus tidur, hidrasi, makan cukup.",
+          "coachNotes": "Sesi yang terlewat tidak ditumpuk ke hari lain."
+        }
+      ]
+    },
+    {
+      "n": 8,
+      "start": "2027-01-04",
+      "light": true,
+      "runs": [
+        {
+          "label": "Tempo",
+          "km": 6
+        },
+        {
+          "label": "Easy",
+          "km": 5
+        },
+        {
+          "label": "Long run",
+          "km": 11
+        }
+      ],
+      "sessions": [
+        {
+          "date": "2027-01-04",
+          "type": "Run",
+          "title": "Tempo 3 x 6 menit @ 5:40-5:45 (minggu ringan)",
+          "description": "Warm-up 1,5 km, drills, 2 strides. 3 x 6 menit @ 5:40-5:45/km, jog 2 menit. Cooldown 1 km.",
+          "coachNotes": "Minggu ringan. Rep pendek supaya segar sebelum blok berikutnya.",
+          "km": 6,
+          "notes": "5:40-5:45/km, RPE 6, pace alert 5:38-5:48, sepatu 910 Haze Tempo. Panas: longgarkan 5-10 detik/km."
+        },
+        {
+          "date": "2027-01-05",
+          "type": "Strength",
+          "title": "Push ringan",
+          "description": "25-30 menit, RPE maks 6, tidak ada set sampai gagal.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Dumbbell Chest Press",
+              "sets": 2,
+              "reps": 8,
+              "weight": 18,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Incline Dumbbell Chest Press",
+              "sets": 2,
+              "reps": 8,
+              "weight": 16,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Triceps Pushdown",
+              "sets": 2,
+              "reps": 10,
+              "weight": 36,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Lateral Raise",
+              "sets": 2,
+              "reps": 12,
+              "weight": 6,
+              "notes": "RPE maks 6"
+            }
+          ]
+        },
+        {
+          "date": "2027-01-06",
+          "type": "Strength",
+          "title": "Leg + plyometrik (60 kontak)",
+          "description": "Plyometrik dulu saat kaki segar (~60 kontak), lalu kekuatan kaki. Sekitar 40 menit.",
+          "coachNotes": "Minggu ringan. Tidak ada gerakan baru, RPE maks 5.",
+          "exercises": [
+            {
+              "name": "Pogo Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak"
+            },
+            {
+              "name": "Line Hop",
+              "sets": 3,
+              "reps": 10,
+              "weight": 0,
+              "notes": "30 kontak, total 60"
+            },
+            {
+              "name": "Leg Press",
+              "sets": 2,
+              "reps": 8,
+              "weight": 60,
+              "notes": "RPE maks 5"
+            },
+            {
+              "name": "Standing Calf Raise (DB)",
+              "sets": 2,
+              "reps": 12,
+              "weight": 20,
+              "notes": "Ringan"
+            },
+            {
+              "name": "Single Leg RDL (KB)",
+              "sets": 2,
+              "reps": 8,
+              "weight": 8,
+              "notes": "Ringan"
+            },
+            {
+              "name": "Bulgarian Split Squat",
+              "sets": 2,
+              "reps": 8,
+              "weight": 4,
+              "notes": "Per kaki, ringan"
+            }
+          ]
+        },
+        {
+          "date": "2027-01-07",
+          "type": "Strength",
+          "title": "Pull ringan",
+          "description": "25-30 menit, RPE maks 6, tidak ada failure.",
+          "coachNotes": "Naik 2 kg hanya kalau semua set RPE 6 atau lebih rendah. Tidak ada latihan baru.",
+          "exercises": [
+            {
+              "name": "Lat Pulldown",
+              "sets": 2,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Seated Cable Row",
+              "sets": 2,
+              "reps": 8,
+              "weight": 36,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Incline DB Curl",
+              "sets": 2,
+              "reps": 8,
+              "weight": 10,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Hammer Curl",
+              "sets": 2,
+              "reps": 8,
+              "weight": 14,
+              "notes": "RPE maks 6"
+            },
+            {
+              "name": "Face Pull",
+              "sets": 2,
+              "reps": 12,
+              "weight": 36,
+              "notes": "RPE maks 6"
+            }
+          ]
+        },
+        {
+          "date": "2027-01-08",
+          "type": "Run",
+          "title": "Easy 5 km",
+          "description": "Easy 5 km @ 7:00-7:30/km, RPE 2-3, HR di bawah 150. Hyperblast 2.1.",
+          "coachNotes": "Jangan jadi tempo. Km 2 sering terlalu cepat. Kalau kaki berat dari Rabu, kurangi 1 km.",
+          "km": 5,
+          "notes": "7:00-7:30/km, RPE 2-3, sepatu Hyperblast 2.1."
+        },
+        {
+          "date": "2027-01-09",
+          "type": "Run",
+          "title": "Long run 11 km",
+          "description": "Long run 11 km easy @ 7:00-7:30/km, HR di bawah 150 di paruh pertama. Mulai pagi (panas). Hyperblast 2.1.",
+          "coachNotes": "Minggu ringan: turun ke 11 km, santai.",
+          "km": 11,
+          "notes": "7:00-7:30/km, RPE 3-4, sepatu Hyperblast 2.1. Tanpa fast finish."
+        },
+        {
+          "date": "2027-01-10",
+          "type": "Rest",
+          "title": "Rest total",
+          "description": "Tidak lari, tidak gym. Jalan santai boleh. Fokus tidur, hidrasi, makan cukup.",
+          "coachNotes": "Besok mulai Base 2: blok baru diimpor Senin."
+        }
+      ]
+    }
+  ]
+}

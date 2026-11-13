@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Flag, Target } from 'lucide-react';
 import racePlan from '../../data/racePlan.json';
+import base1Weeks from '../../data/base1Weeks.json';
+import PlanRoadmap from './PlanRoadmap';
 import {
   buildPlanMonth,
   getPhaseForDate,
@@ -17,7 +19,6 @@ const WEEKDAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const monthLabel = date => date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 const shortDate = key => parseDateKey(key)?.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) || key;
 const longDate = key => parseDateKey(key)?.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) || key;
-const range = values => (Array.isArray(values) ? `${values[0]}-${values[1]}` : null);
 
 const lastRaceKey = racePlan.race.dates[racePlan.race.dates.length - 1];
 const raceMonth = parseDateKey(lastRaceKey);
@@ -52,6 +53,12 @@ export default function PlanCalendar({ workouts, plannedSessions }) {
     setSelected(null);
   };
   const changeMonth = delta => goToMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1));
+  // Dari peta jalan: buka bulan tanggal itu dan gulir ke kalender, supaya perpindahan terlihat di HP.
+  const pickDate = key => {
+    goToMonth(parseDateKey(key));
+    setSelected(key);
+    document.getElementById('kalender-bulanan')?.scrollIntoView({ block: 'start' });
+  };
 
   const iconButton = 'inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] disabled:opacity-40';
 
@@ -71,7 +78,7 @@ export default function PlanCalendar({ workouts, plannedSessions }) {
         )}
       </header>
 
-      <section className="rounded-xl border border-[#DCE3EA] bg-white p-3 sm:p-4" aria-label="Kalender bulanan">
+      <section id="kalender-bulanan" className="scroll-mt-4 rounded-xl border border-[#DCE3EA] bg-white p-3 sm:p-4" aria-label="Kalender bulanan">
         <div className="mb-3 flex items-center justify-between gap-2">
           <button type="button" className={iconButton} onClick={() => changeMonth(-1)} aria-label="Bulan sebelumnya"><ChevronLeft size={19} /></button>
           <h3 className="text-center text-sm font-bold text-[#0F172A]" aria-live="polite">{monthLabel(month)}</h3>
@@ -177,35 +184,7 @@ export default function PlanCalendar({ workouts, plannedSessions }) {
         )}
       </section>
 
-      <section aria-label="Peta fase">
-        <h3 className="text-sm font-bold text-[#0F172A]">Peta fase sampai lomba</h3>
-        <p className="mt-1 text-xs leading-5 text-[#64748B]">{racePlan.note}</p>
-        <ol className="mt-3 divide-y divide-[#DCE3EA] rounded-xl border border-[#DCE3EA] bg-white">
-          {phases.map(phase => {
-            const active = currentPhase?.id === phase.id;
-            const km = range(phase.weeklyKm);
-            const longRun = range(phase.longRunKm);
-            return (
-              <li key={phase.id}>
-                <button
-                  type="button"
-                  onClick={() => { goToMonth(parseDateKey(phase.start)); setSelected(phase.start); }}
-                  className="block min-h-11 w-full px-3 py-3 text-left hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2563EB]"
-                >
-                  <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-                    <span className="text-sm font-bold text-[#0F172A]">{phase.name}{active && <span className="ml-2 text-xs font-bold text-[#1D4ED8]">Sekarang</span>}</span>
-                    <span className="text-xs text-[#64748B]">{shortDate(phase.start)} - {shortDate(phase.end)}</span>
-                  </span>
-                  <span className="mt-1 block text-xs text-[#334155]">
-                    {km ? `${km} km per minggu` : ''}{km && longRun ? ' · ' : ''}{longRun ? `long run ${longRun} km` : ''}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-[#64748B]">{phase.focus}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
+      <PlanRoadmap plan={racePlan} detail={base1Weeks} todayKey={todayKey} onPick={pickDate} />
     </div>
   );
 }

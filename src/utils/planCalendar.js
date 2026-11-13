@@ -45,6 +45,64 @@ export function getPhasesInMonth(phases, month) {
   return (phases || []).filter(phase => phase.start <= last && phase.end >= first);
 }
 
+export function addDays(dateKey, days) {
+  const date = parseDateKey(dateKey);
+  if (!date) return null;
+  date.setDate(date.getDate() + days);
+  return toDateKey(date);
+}
+
+function stateFor(todayKey, start, end) {
+  if (todayKey < start) return 'ahead';
+  if (todayKey > end) return 'done';
+  return 'now';
+}
+
+/**
+ * Roadmap data: every phase with its weeks and state against today.
+ * detail: { phaseId, weeks: [{ n, start, light, runs: [{ label, km }] }] } with real per-week runs for one phase.
+ * Phases without detail only carry the rough ranges from the plan, no invented weekly numbers.
+ */
+export function buildRoadmap({ plan, detail, todayKey }) {
+  const phases = plan?.phases || [];
+  const milestones = plan?.milestones || [];
+  const detailByStart = {};
+  for (const week of detail?.weeks || []) detailByStart[week.start] = week;
+
+  const built = phases.map(phase => {
+    const first = parseDateKey(phase.start);
+    const last = parseDateKey(phase.end);
+    const weekCount = first && last ? Math.round((last - first) / DAY_MS / 7 + 1 / 7) : 0;
+    const weeks = Array.from({ length: weekCount }, (_, i) => {
+      const start = addDays(phase.start, i * 7);
+      const end = addDays(start, 6);
+      const extra = phase.id === detail?.phaseId ? detailByStart[start] : null;
+      const runs = extra?.runs || null;
+      return {
+        planWeek: getPlanWeek(phases, start),
+        inPhase: i + 1,
+        start,
+        end,
+        state: stateFor(todayKey, start, end),
+        light: Boolean(extra?.light),
+        runs,
+        sessions: extra?.sessions || [],
+        totalKm: runs ? runs.reduce((sum, run) => sum + run.km, 0) : null,
+      };
+    });
+    return {
+      ...phase,
+      weekCount,
+      weeks,
+      hasDetail: weeks.some(week => week.runs),
+      state: stateFor(todayKey, phase.start, phase.end),
+      milestones: milestones.filter(item => item.date >= phase.start && item.date <= phase.end),
+    };
+  });
+
+  return { phases: built, totalWeeks: getPlanWeekCount(phases) };
+}
+
 export function summarizePlannedSession(session) {
   const prescription = session?.prescription || {};
   if (session?.type === 'Run') {
